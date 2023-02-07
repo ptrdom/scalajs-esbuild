@@ -1,0 +1,12 @@
+{
+  "name": "basic-project",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "dependencies": {
+    "lodash": "4.17.21"
+  },
+  "devDependencies": {
+    "esbuild": "0.17.5"
+  }
+}

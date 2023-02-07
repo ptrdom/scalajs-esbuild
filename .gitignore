@@ -1,0 +1,18 @@
+# sbt target folders
+target/
+
+# eclipse project files
+/.settings
+/.classpath
+/.project
+
+/.bsp
+/.idea
+
+**/sbt-test/**/.bsp
+**/sbt-test/**/.idea
+**/sbt-test/**/target
+**/sbt-test/**/build.properties
+**/sbt-test/**/package-lock.json
+**/sbt-test/**/yarn.lock
+**/sbt-test/**/pnpm-lock.yaml
