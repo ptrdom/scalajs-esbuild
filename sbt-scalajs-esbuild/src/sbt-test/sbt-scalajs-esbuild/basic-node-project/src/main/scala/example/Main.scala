@@ -4,10 +4,10 @@ import example.facade.Lodash
 
 object Main {
   def main(args: Array[String]): Unit = {
-    println(test())
+    println(testString())
   }
 
-  def test(): String = {
+  def testString(): String = {
     Lodash.toUpper("basic-project works!")
   }
 }

@@ -2,7 +2,6 @@ package scalajsesbuild
 
 import sbt._
 import sbt.util.Logger
-import scalajsesbuild.Logging.eagerLogger
 
 import scala.sys.process.Process
 
@@ -17,7 +16,7 @@ object EsbuildRunner {
         logger: Logger
     )(command: List[String], directory: File): Process = {
       Process(prepareCommand(directory, command), directory)
-        .run(eagerLogger(logger))
+        .run(logger)
     }
 
     override def run(
@@ -26,7 +25,7 @@ object EsbuildRunner {
       val fullCommand = prepareCommand(directory, command)
       logger.info(s"Running [$fullCommand]")
       val exitValue = Process(fullCommand, directory)
-        .run(eagerLogger(logger))
+        .run(logger)
         .exitValue()
       if (exitValue != 0) {
         sys.error(s"Nonzero exit value: $exitValue")

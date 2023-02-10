@@ -12,7 +12,6 @@ import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerOutputDirecto
 import sbt._
 import sbt.AutoPlugin
 import sbt.Keys._
-import scalajsesbuild.Logging.eagerLogger
 
 import scala.jdk.CollectionConverters._
 import scala.sys.process.Process
@@ -226,7 +225,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
             jsFileNames
               .map(targetDir / _)
               .map(_.absolutePath)
-              .toList ::: "--bundle" :: s"--outdir=${(stageTask / esbuildBundle / crossTarget).value.absolutePath}" :: "--metafile=meta.json" :: Nil,
+              .toList ::: "--bundle" :: s"--outdir=${(stageTask / esbuildBundle / crossTarget).value.absolutePath}" :: Nil,
             targetDir
           )
         }
