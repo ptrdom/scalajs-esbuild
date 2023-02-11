@@ -2,19 +2,22 @@ package scalajsesbuild
 
 import java.nio.file.Files
 
+import org.scalajs.jsenv.Input.Script
+import org.scalajs.linker.interface.Report
 import org.scalajs.linker.interface.unstable
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.ModuleKind
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fastLinkJS
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fullLinkJS
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.jsEnvInput
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerConfig
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerOutputDirectory
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
 import sbt._
 import sbt.AutoPlugin
 import sbt.Keys._
 
 import scala.jdk.CollectionConverters._
-import scala.sys.process.Process
 
 object ScalaJSEsbuildPlugin extends AutoPlugin {
 
@@ -108,6 +111,19 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       }
   }
 
+  private def jsFileNames(report: Report) = {
+    report match {
+      case report: unstable.ReportImpl =>
+        val jsFileNames = report.publicModules
+          .map { publicModule =>
+            publicModule.jsFileName
+          }
+        jsFileNames
+      case unhandled =>
+        sys.error(s"Unhandled report type [$unhandled]")
+    }
+  }
+
   override lazy val projectSettings: Seq[Setting[_]] = Seq(
     scalaJSLinkerConfig ~= {
       _.withModuleKind(ModuleKind.ESModule)
@@ -173,7 +189,22 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       )
 
       changeStatus
-    }
+    },
+    jsEnvInput := Def.taskDyn {
+      val stageTask = scalaJSStage.value match {
+        case org.scalajs.sbtplugin.Stage.FastOpt => fastLinkJS
+        case org.scalajs.sbtplugin.Stage.FullOpt => fullLinkJS
+      }
+      Def.task {
+        (stageTask / esbuildBundle).value
+
+        jsFileNames(stageTask.value.data)
+          .map((stageTask / esbuildBundle / crossTarget).value / _)
+          .map(_.toPath)
+          .map(Script)
+          .toSeq
+      }
+    }.value
   ) ++
     perScalaJSStageSettings(Stage.FastOpt) ++
     perScalaJSStageSettings(Stage.FullOpt)
@@ -206,23 +237,12 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         val stageTaskResult = stageTask.value
 
         if (changeStatus == ChangeStatus.Dirty) {
-          val jsFileNames = stageTaskResult.data match {
-            case report: unstable.ReportImpl =>
-              val jsFileNames = report.publicModules
-                .map { publicModule =>
-                  publicModule.jsFileName
-                }
-              jsFileNames
-            case unhandled =>
-              sys.error(s"Unhandled report type [$unhandled]")
-          }
-
           val targetDir = (esbuildInstall / crossTarget).value
 
           esbuildRunner.value.run(
             log
           )(
-            jsFileNames
+            jsFileNames(stageTaskResult.data)
               .map(targetDir / _)
               .map(_.absolutePath)
               .toList ::: "--bundle" :: s"--outdir=${(stageTask / esbuildBundle / crossTarget).value.absolutePath}" :: Nil,
