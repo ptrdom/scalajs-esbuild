@@ -40,6 +40,9 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       taskKey(
         "Compiles module and copies output to target directory"
       )
+    val esbuildBundleScript: TaskKey[String] = taskKey(
+      "esbuild script used for bundling"
+    )
     val esbuildBundle: TaskKey[ChangeStatus] = taskKey(
       "Bundles module with esbuild"
     )
@@ -231,39 +234,44 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         ).combine(changeStatus)
       },
       stageTask / esbuildBundle / crossTarget := (esbuildInstall / crossTarget).value / "out",
+      stageTask / esbuildBundleScript := {
+        val targetDir = (esbuildInstall / crossTarget).value
+
+        val stageTaskResult = stageTask.value
+
+        val entryPoints = jsFileNames(stageTaskResult.data)
+          .map(jsFileName =>
+            s"'${(targetDir / jsFileName).absolutePath.replace("\\", "\\\\")}'"
+          )
+          .mkString(",")
+        val outdir =
+          (stageTask / esbuildBundle / crossTarget).value.absolutePath
+            .replace("\\", "\\\\")
+        s"""
+             |const esbuild = require("esbuild");
+             |
+             |const bundle = async () => {
+             |  await esbuild.build({
+             |    entryPoints: [$entryPoints],
+             |    bundle: true,
+             |    outdir: '$outdir',
+             |  })
+             |}
+             |
+             |bundle()
+             |""".stripMargin
+      },
       stageTask / esbuildBundle := {
         val log = streams.value.log
 
         val changeStatus = (stageTask / esbuildCompile).value
-        val stageTaskResult = stageTask.value
+        val bundlingScript = (stageTask / esbuildBundleScript).value
 
         if (changeStatus == ChangeStatus.Dirty) {
           val targetDir = (esbuildInstall / crossTarget).value
 
-          val entryPoints = jsFileNames(stageTaskResult.data)
-            .map(jsFileName =>
-              s"'${(targetDir / jsFileName).absolutePath.replace("\\", "\\\\")}'"
-            )
-            .mkString(",")
-          val outdir =
-            (stageTask / esbuildBundle / crossTarget).value.absolutePath
-              .replace("\\", "\\\\")
-          val script =
-            s"""
-              |const esbuild = require("esbuild");
-              |
-              |const bundle = async () => {
-              |  await esbuild.build({
-              |    entryPoints: [$entryPoints],
-              |    bundle: true,
-              |    outdir: '$outdir',
-              |  })
-              |}
-              |
-              |bundle()
-              |""".stripMargin
           val scriptFileName = "sbt-scalajs-esbuild-bundle-script.cjs"
-          IO.write(targetDir / scriptFileName, script)
+          IO.write(targetDir / scriptFileName, bundlingScript)
 
           esbuildRunner.value.run(log)(scriptFileName, targetDir)
         }
