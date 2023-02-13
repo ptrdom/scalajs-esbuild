@@ -8,6 +8,6 @@ object Main {
   }
 
   def testString(): String = {
-    Lodash.toUpper("basic-project works!")
+    Lodash.toUpper("basic-node-project works!")
   }
 }

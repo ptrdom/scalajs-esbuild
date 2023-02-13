@@ -6,24 +6,23 @@ import sbt.util.Logger
 import scala.sys.process.Process
 
 trait EsbuildRunner {
-  def process(logger: Logger)(command: List[String], directory: File): Process
-  def run(logger: Logger)(command: List[String], directory: File): Unit
+  def process(logger: Logger)(scriptFileName: String, directory: File): Process
+  def run(logger: Logger)(scriptFileName: String, directory: File): Unit
 }
 
 object EsbuildRunner {
   object Default extends EsbuildRunner {
     override def process(
         logger: Logger
-    )(command: List[String], directory: File): Process = {
-      Process(prepareCommand(directory, command), directory)
+    )(scriptFileName: String, directory: File): Process = {
+      Process(prepareCommand(scriptFileName), directory)
         .run(logger)
     }
 
     override def run(
         logger: Logger
-    )(command: List[String], directory: File): Unit = {
-      val fullCommand = prepareCommand(directory, command)
-      logger.info(s"Running [$fullCommand]")
+    )(scriptFileName: String, directory: File): Unit = {
+      val fullCommand = prepareCommand(scriptFileName)
       val exitValue = Process(fullCommand, directory)
         .run(logger)
         .exitValue()
@@ -32,19 +31,8 @@ object EsbuildRunner {
       } else ()
     }
 
-    private val executable = List(
-      Some("esbuild"),
-      if (
-        sys
-          .props("os.name")
-          .toLowerCase
-          .contains("win")
-      ) Some("cmd")
-      else None
-    ).flatten.mkString(".")
-
-    private def prepareCommand(directory: File, command: List[String]) = {
-      (directory / "node_modules" / ".bin" / executable).absolutePath :: command
+    private def prepareCommand(scriptFileName: String) = {
+      "node" :: scriptFileName :: Nil
     }
   }
 }

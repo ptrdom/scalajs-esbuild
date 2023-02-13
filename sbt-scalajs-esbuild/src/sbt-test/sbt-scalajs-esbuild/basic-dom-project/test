@@ -1,0 +1,35 @@
+$ absent esbuild/package-lock.json
+> set Test/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
+> run
+$ exists esbuild/package-lock.json
+
+$ delete esbuild/package-lock.json
+> clean
+> set Test/scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt
+> run
+$ exists esbuild/package-lock.json
+
+$ delete esbuild/package-lock.json
+> clean
+> fastLinkJS/esbuildServeStart
+# TODO html test
+> fastLinkJS/esbuildServeStop
+$ exists esbuild/package-lock.json
+
+$ delete esbuild/package-lock.json
+> set Test/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
+> test
+$ exists esbuild/package-lock.json
+
+$ delete esbuild/package-lock.json
+> clean
+> set Test/scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt
+> test
+$ exists esbuild/package-lock.json
+
+$ delete esbuild/package-lock.json
+> clean
+> fullLinkJS/esbuildServeStart
+# TODO html test
+> fullLinkJS/esbuildServeStop
+$ exists esbuild/package-lock.json

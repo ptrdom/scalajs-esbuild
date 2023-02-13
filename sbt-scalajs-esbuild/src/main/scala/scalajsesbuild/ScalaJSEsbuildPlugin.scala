@@ -69,6 +69,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
     case object FastOpt extends Stage
   }
 
+  // TODO rework with https://www.scala-sbt.org/1.x/docs/Howto-Track-File-Inputs-and-Outputs.html
   private def copyChanges(
       logger: Logger
   )(
@@ -239,15 +240,32 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         if (changeStatus == ChangeStatus.Dirty) {
           val targetDir = (esbuildInstall / crossTarget).value
 
-          esbuildRunner.value.run(
-            log
-          )(
-            jsFileNames(stageTaskResult.data)
-              .map(targetDir / _)
-              .map(_.absolutePath)
-              .toList ::: "--bundle" :: s"--outdir=${(stageTask / esbuildBundle / crossTarget).value.absolutePath}" :: Nil,
-            targetDir
-          )
+          val entryPoints = jsFileNames(stageTaskResult.data)
+            .map(jsFileName =>
+              s"'${(targetDir / jsFileName).absolutePath.replace("\\", "\\\\")}'"
+            )
+            .mkString(",")
+          val outdir =
+            (stageTask / esbuildBundle / crossTarget).value.absolutePath
+              .replace("\\", "\\\\")
+          val script =
+            s"""
+              |const esbuild = require("esbuild");
+              |
+              |const bundle = async () => {
+              |  await esbuild.build({
+              |    entryPoints: [$entryPoints],
+              |    bundle: true,
+              |    outdir: '$outdir',
+              |  })
+              |}
+              |
+              |bundle()
+              |""".stripMargin
+          val scriptFileName = "sbt-scalajs-esbuild-bundle-script.cjs"
+          IO.write(targetDir / scriptFileName, script)
+
+          esbuildRunner.value.run(log)(scriptFileName, targetDir)
         }
 
         changeStatus
