@@ -82,6 +82,41 @@ def perScalaJSStageSettings(stage: Stage): Seq[Setting[_]] = {
       val outdir =
         (stageTask / esbuildServeStart / crossTarget).value.absolutePath
           .replace("\\", "\\\\")
+      // taken from Vite's KNOWN_ASSET_TYPES constant
+      val loaders = Seq(
+        // images
+        "png",
+        "jpe?g",
+        "jfif",
+        "pjpeg",
+        "pjp",
+        "gif",
+        "svg",
+        "ico",
+        "webp",
+        "avif",
+
+        // media
+        "mp4",
+        "webm",
+        "ogg",
+        "mp3",
+        "wav",
+        "flac",
+        "aac",
+
+        // fonts
+        "woff2?",
+        "eot",
+        "ttf",
+        "otf",
+
+        // other
+        "webmanifest",
+        "pdf",
+        "txt"
+      ).map(assetType => s"'.$assetType': 'file'")
+        .mkString(",")
       val script =
         s"""
           |const http = require("http");
@@ -93,6 +128,7 @@ def perScalaJSStageSettings(stage: Stage): Seq[Setting[_]] = {
           |        entryPoints: [$entryPoints],
           |        bundle: true,
           |        outdir: '$outdir',
+          |        loader: { $loaders },
           |        logOverride: {
           |            'equals-negative-zero': 'silent',
           |        },

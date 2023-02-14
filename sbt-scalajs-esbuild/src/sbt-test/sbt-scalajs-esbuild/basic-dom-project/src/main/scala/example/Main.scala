@@ -11,6 +11,10 @@ import scala.scalajs.js.annotation.JSImport
 @JSImport("./styles.css", JSImport.Namespace)
 object Style extends js.Object
 
+@js.native
+@JSImport("./javascript.svg", JSImport.Default)
+object JavascriptLogo extends js.Object
+
 object Main {
   val style = Style
 
@@ -24,6 +28,9 @@ object Main {
   }
 
   def setupUI(): Unit = {
+    val img = document.createElement("img")
+    img.setAttribute("src", JavascriptLogo.toString)
+    document.body.append(img)
     val h1 = document.createElement("h1")
     h1.textContent = testString()
     document.body.append(h1)
