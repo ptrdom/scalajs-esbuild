@@ -18,6 +18,7 @@ import sbt.AutoPlugin
 import sbt.Keys._
 
 import scala.jdk.CollectionConverters._
+import scala.sys.process._
 
 object ScalaJSEsbuildPlugin extends AutoPlugin {
 
@@ -46,6 +47,10 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
     val esbuildBundle: TaskKey[ChangeStatus] = taskKey(
       "Bundles module with esbuild"
     )
+    val esbuildServeStart =
+      taskKey[Unit]("Runs esbuild serve on target directory")
+    val esbuildServeStop =
+      taskKey[Unit]("Stops running esbuild serve on target directory")
   }
 
   import autoImport._
@@ -314,6 +319,155 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
 
         changeStatus
       }
-    )
+    ) ++ {
+      var process: Option[Process] = None
+
+      def terminateProcess(log: Logger) = {
+        process.foreach { process =>
+          log.info(s"Stopping esbuild serve process")
+          process.destroy()
+        }
+        process = None
+      }
+      Seq(
+        stageTask / esbuildServeStart / crossTarget := (esbuildInstall / crossTarget).value / "www",
+        stageTask / esbuildServeStart := {
+          val logger = state.value.globalLogging.full
+
+          (stageTask / esbuildServeStop).value
+
+          (stageTask / esbuildCompile).value
+
+          val targetDir = (esbuildInstall / crossTarget).value
+
+          val entryPoints = jsFileNames(stageTask.value.data)
+            .map(jsFileName =>
+              s"'${(targetDir / jsFileName).absolutePath.replace("\\", "\\\\")}'"
+            )
+            .mkString(",")
+          val outdir =
+            (stageTask / esbuildServeStart / crossTarget).value.absolutePath
+              .replace("\\", "\\\\")
+          // taken from Vite's KNOWN_ASSET_TYPES constant
+          val loaders = Seq(
+            // images
+            "png",
+            "jpe?g",
+            "jfif",
+            "pjpeg",
+            "pjp",
+            "gif",
+            "svg",
+            "ico",
+            "webp",
+            "avif",
+
+            // media
+            "mp4",
+            "webm",
+            "ogg",
+            "mp3",
+            "wav",
+            "flac",
+            "aac",
+
+            // fonts
+            "woff2?",
+            "eot",
+            "ttf",
+            "otf",
+
+            // other
+            "webmanifest",
+            "pdf",
+            "txt"
+          ).map(assetType => s"'.$assetType': 'file'")
+            .mkString(",")
+          val script =
+            s"""
+               |const http = require("http");
+               |const esbuild = require("esbuild");
+               |
+               |const serve = async () => {
+               |    // Start esbuild's local web server. Random port will be chosen by esbuild.
+               |    const ctx  = await esbuild.context({
+               |        entryPoints: [$entryPoints],
+               |        bundle: true,
+               |        outdir: '$outdir',
+               |        loader: { $loaders },
+               |        logOverride: {
+               |            'equals-negative-zero': 'silent',
+               |        },
+               |    });
+               |
+               |    await ctx.watch()
+               |
+               |    const { host, port } = await ctx.serve({
+               |        servedir: '$outdir',
+               |        port: 8001
+               |    });
+               |
+               |    // Create a second (proxy) server that will forward requests to esbuild.
+               |    const proxy = http.createServer((req, res) => {
+               |        // forwardRequest forwards an http request through to esbuid.
+               |        const forwardRequest = (path) => {
+               |            const options = {
+               |                hostname: host,
+               |                port,
+               |                path,
+               |                method: req.method,
+               |                headers: req.headers,
+               |            };
+               |
+               |            const proxyReq = http.request(options, (proxyRes) => {
+               |                if (proxyRes.statusCode === 404) {
+               |                    // If esbuild 404s the request, assume it's a route needing to
+               |                    // be handled by the JS bundle, so forward a second attempt to `/`.
+               |                    return forwardRequest("/");
+               |                }
+               |
+               |                // Otherwise esbuild handled it like a champ, so proxy the response back.
+               |                res.writeHead(proxyRes.statusCode, proxyRes.headers);
+               |                proxyRes.pipe(res, { end: true });
+               |            });
+               |
+               |            req.pipe(proxyReq, { end: true });
+               |        };
+               |
+               |        // When we're called pass the request right through to esbuild.
+               |        forwardRequest(req.url);
+               |    });
+               |
+               |    // Start our proxy server at the specified `listen` port.
+               |    proxy.listen(8000);
+               |
+               |    console.log("Started esbuild serve process [http://localhost:8000]");
+               |};
+               |
+               |// Serves all content from $outdir on :8000.
+               |// If esbuild 404s the request, the request is attempted again
+               |// from `/` assuming that it's an SPA route needing to be handled by the root bundle.
+               |serve();
+               |""".stripMargin
+
+          logger.info(s"Starting esbuild serve process")
+          val scriptFileName = "sbt-scalajs-esbuild-serve-script.cjs"
+          IO.write(targetDir / scriptFileName, script)
+
+          process =
+            Some(esbuildRunner.value.process(logger)(scriptFileName, targetDir))
+        },
+        stageTask / esbuildServeStop := {
+          terminateProcess(streams.value.log)
+        },
+        (onLoad in Global) := {
+          (onLoad in Global).value.compose(
+            _.addExitHook {
+              terminateProcess(Keys.sLog.value)
+            }
+          )
+        }
+      )
+    }
   }
 }
