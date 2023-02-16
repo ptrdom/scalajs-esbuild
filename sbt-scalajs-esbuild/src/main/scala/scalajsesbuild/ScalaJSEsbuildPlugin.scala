@@ -363,6 +363,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
           s"""
              |const http = require("http");
              |const esbuild = require("esbuild");
+             |const fs = require('fs');
              |
              |const serve = async () => {
              |    // Start esbuild's local web server. Random port will be chosen by esbuild.
@@ -404,8 +405,27 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
              |            req.pipe(proxyReq, { end: true });
              |        };
              |
-             |        // When we're called pass the request right through to esbuild.
-             |        forwardRequest(req.url);
+             |        if (req.url === "/" || req.url.endsWith(".html")) {
+             |          let file;
+             |          if (req.url === "/") {
+             |            file = "/index.html";
+             |          } else {
+             |            file = req.url;
+             |          }
+             |
+             |          fs.readFile("."+file, function (err, html) {
+             |            if (err) {
+             |              throw err;
+             |            } else {
+             |              res.writeHead(200, {"Content-Type": "text/html"} )
+             |              res.write(html);
+             |              res.end();
+             |            }
+             |          });
+             |        } else {
+             |          // When we're called pass the request right through to esbuild.
+             |          forwardRequest(req.url);
+             |        }
              |    });
              |
              |    // Start our proxy server at the specified `listen` port.
