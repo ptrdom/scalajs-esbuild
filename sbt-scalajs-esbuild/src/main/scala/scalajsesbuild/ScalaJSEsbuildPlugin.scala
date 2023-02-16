@@ -417,8 +417,35 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
              |            if (err) {
              |              throw err;
              |            } else {
+             |              let processedHtml = html
+             |                .toString()
+             |                .replace("</head>", `
+             |                  <script type="text/javascript">
+             |                    // Based on https://esbuild.github.io/api/#live-reload
+             |                    new EventSource('/esbuild').addEventListener('change', e => {
+             |                      const { added, removed, updated } = JSON.parse(e.data)
+             |
+             |                      if (!added.length && !removed.length && updated.length === 1) {
+             |                        for (const link of document.getElementsByTagName("link")) {
+             |                          const url = new URL(link.href)
+             |
+             |                          if (url.host === location.host && url.pathname === updated[0]) {
+             |                            const next = link.cloneNode()
+             |                            next.href = updated[0] + '?' + Math.random().toString(36).slice(2)
+             |                            next.onload = () => link.remove()
+             |                            link.parentNode.insertBefore(next, link.nextSibling)
+             |                            return
+             |                          }
+             |                        }
+             |                      }
+             |
+             |                      location.reload()
+             |                    })
+             |                  </script>
+             |                </head>
+             |                `)
              |              res.writeHead(200, {"Content-Type": "text/html"} )
-             |              res.write(html);
+             |              res.write(processedHtml);
              |              res.end();
              |            }
              |          });
