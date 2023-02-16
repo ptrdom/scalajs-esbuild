@@ -1,8 +1,3 @@
-import org.scalajs.sbtplugin.Stage
-import org.scalajs.linker.interface.Report
-import org.scalajs.linker.interface.unstable
-import scala.sys.process._
-
 enablePlugins(ScalaJSEsbuildPlugin)
 
 scalaVersion := "2.13.8"
