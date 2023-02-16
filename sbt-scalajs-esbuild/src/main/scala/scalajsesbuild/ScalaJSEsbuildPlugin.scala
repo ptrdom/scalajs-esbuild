@@ -174,23 +174,33 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       .mkString(",")
   }
 
-  private def esbuildOptions(entryPoints: Seq[String], outdir: String) = {
+  private def esbuildOptions(
+      entryPoints: Seq[String],
+      outdir: String,
+      hashOutputFiles: Boolean
+  ) = {
     val entryPointsFn: Seq[String] => String = _.map(escapePathString)
       .mkString(",")
     val outdirFn: String => String = escapePathString
 
-    // TODO only hash when bundling, not when serving
-    s"""
-      |  entryPoints: [${entryPointsFn(entryPoints)}],
-      |  bundle: true,
-      |  outdir: '${outdirFn(outdir)}',
-      |  loader: { $esbuildLoaders },
-      |  // entryNames: '[name]-[hash]',
-      |  // assetNames: '[name]-[hash]',
-      |  logOverride: {
-      |    'equals-negative-zero': 'silent',
-      |  },
-      |""".stripMargin
+    Seq(
+      s"""
+         |  entryPoints: [${entryPointsFn(entryPoints)}],
+         |  bundle: true,
+         |  outdir: '${outdirFn(outdir)}',
+         |  loader: { $esbuildLoaders },
+         |  metafile: true,
+         |  logOverride: {
+         |    'equals-negative-zero': 'silent',
+         |  },
+         |""".stripMargin.some,
+      if (hashOutputFiles) {
+        """
+          |  entryNames: '[name]-[hash]',
+          |  assetNames: '[name]-[hash]',
+          |""".stripMargin.some
+      } else None
+    ).flatten.mkString
   }
 
   private def escapePathString(pathString: String) =
@@ -311,13 +321,23 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         val outdir =
           (stageTask / esbuildBundle / crossTarget).value.absolutePath
 
+        // TODO either do not hash in `run` and `test` or interpret bundling result in `jsEnvInput`
+        val hashOutputFiles = false
+
         s"""
              |const esbuild = require("esbuild");
+             |const fs = require('fs');
              |
              |const bundle = async () => {
-             |  await esbuild.build({
-             |    ${esbuildOptions(entryPoints, outdir)}
+             |  const result = await esbuild.build({
+             |    ${esbuildOptions(
+            entryPoints,
+            outdir,
+            hashOutputFiles
+          )}
              |  })
+             |
+             |  fs.writeFileSync('meta.json', JSON.stringify(result.metafile))
              |}
              |
              |bundle()
@@ -367,8 +387,28 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
              |
              |const serve = async () => {
              |    // Start esbuild's local web server. Random port will be chosen by esbuild.
+             |
+             |    const plugins = [{
+             |      name: 'metafile-plugin',
+             |      setup(build) {
+             |        let count = 0;
+             |        build.onEnd(result => {
+             |          if (count++ === 0) {
+             |            fs.writeFileSync('meta.json', JSON.stringify(result.metafile));
+             |          } else {
+             |            fs.writeFileSync('meta.json', JSON.stringify(result.metafile));
+             |          }
+             |        });
+             |      },
+             |    }];
+             |
              |    const ctx  = await esbuild.context({
-             |      ${esbuildOptions(entryPoints, outdir)}
+             |      ${esbuildOptions(
+              entryPoints,
+              outdir,
+              hashOutputFiles = false
+            )}
+             |      plugins: plugins,
              |    });
              |
              |    await ctx.watch()
