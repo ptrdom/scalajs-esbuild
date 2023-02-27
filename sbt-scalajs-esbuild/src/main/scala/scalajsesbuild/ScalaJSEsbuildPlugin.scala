@@ -1,6 +1,6 @@
 package scalajsesbuild
 
-import java.nio.file.Files
+import java.nio.file.Path
 
 import org.scalajs.jsenv.Input.Script
 import org.scalajs.linker.interface.Report
@@ -16,8 +16,10 @@ import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
 import sbt._
 import sbt.AutoPlugin
 import sbt.Keys._
+import sbt.nio.Keys.fileInputExcludeFilter
+import sbt.nio.Keys.fileInputs
+import sbt.nio.file.FileTreeView
 
-import scala.jdk.CollectionConverters._
 import scala.sys.process._
 
 object ScalaJSEsbuildPlugin extends AutoPlugin {
@@ -54,6 +56,12 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       taskKey[Unit]("Runs esbuild serve on target directory")
     val esbuildServeStop =
       taskKey[Unit]("Stops running esbuild serve on target directory")
+
+    // workaround for https://github.com/sbt/sbt/issues/7164
+    val esbuildFastLinkJSWrapper =
+      taskKey[Seq[Path]]("Wraps fastLinkJS task to provide fileOutputs")
+    val esbuildFullLinkJSWrapper =
+      taskKey[Seq[Path]]("Wraps fullLinkJS task to provide fileOutputs")
   }
 
   import autoImport._
@@ -78,51 +86,6 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
   object Stage {
     case object FullOpt extends Stage
     case object FastOpt extends Stage
-  }
-
-  // TODO rework with https://www.scala-sbt.org/1.x/docs/Howto-Track-File-Inputs-and-Outputs.html
-  private def copyChanges(
-      logger: Logger
-  )(
-      sourceDirectory: File,
-      targetDirectory: File,
-      currentDirectory: File
-  ): ChangeStatus = {
-    logger.debug(s"Walking directory [${currentDirectory.getAbsolutePath}]")
-    Files
-      .walk(currentDirectory.toPath)
-      .iterator()
-      .asScala
-      .map(_.toFile)
-      .filter(file =>
-        file.getAbsolutePath != currentDirectory.getAbsolutePath && file.name != "node_modules"
-      )
-      .foldLeft[ChangeStatus](ChangeStatus.Pristine) {
-        case (changeStatus, file) =>
-          if (file.isDirectory) {
-            copyChanges(logger)(sourceDirectory, targetDirectory, file)
-          } else {
-            val targetFile = new File(
-              file.getAbsolutePath.replace(
-                sourceDirectory.getAbsolutePath,
-                targetDirectory.getAbsolutePath
-              )
-            )
-            if (!Hash(file).sameElements(Hash(targetFile))) {
-              logger.debug(
-                s"File changed [${file.getAbsolutePath}], copying to [${targetFile.getAbsolutePath}]"
-              )
-              IO.copyFile(
-                file,
-                targetFile
-              )
-              ChangeStatus.Dirty
-            } else {
-              logger.debug(s"File not changed [${file.getAbsolutePath}]")
-              changeStatus
-            }
-          }
-      }
   }
 
   private def jsFileNames(report: Report) = {
@@ -208,6 +171,39 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
   private def escapePathString(pathString: String) =
     pathString.replace("\\", "\\\\")
 
+  private def processFileChanges(
+      fileChanges: FileChanges,
+      sourceDirectory: File,
+      targetDirectory: File
+  ): Unit = {
+    def toTargetFile(
+        sourcePath: Path,
+        sourceDirectory: File,
+        targetDirectory: File
+    ): File = {
+      new File(
+        sourcePath.toFile.getAbsolutePath.replace(
+          sourceDirectory.getAbsolutePath,
+          targetDirectory.getAbsolutePath
+        )
+      )
+    }
+
+    (fileChanges.created ++ fileChanges.modified)
+      .foreach { path =>
+        IO.copyFile(
+          path.toFile,
+          toTargetFile(path, sourceDirectory, targetDirectory)
+        )
+      }
+
+    fileChanges.deleted.foreach { path =>
+      IO.delete(
+        toTargetFile(path, sourceDirectory, targetDirectory)
+      )
+    }
+  }
+
   override lazy val projectSettings: Seq[Setting[_]] = Seq(
     scalaJSLinkerConfig ~= {
       _.withModuleKind(ModuleKind.ESModule)
@@ -226,28 +222,23 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         "esbuild" /
         (if (configuration.value == Compile) "main" else "test")
     },
+    esbuildCopyResources / fileInputs += (esbuildResourcesDirectory.value.toGlob / **),
+    esbuildCopyResources / fileInputExcludeFilter := (esbuildCopyResources / fileInputExcludeFilter).value || (esbuildResourcesDirectory.value.toGlob / "node_modules" / **),
     esbuildCopyResources := {
-      val s = streams.value
-
       val targetDir = (esbuildInstall / crossTarget).value
 
-      copyChanges(s.log)(
+      val fileChanges = esbuildCopyResources.inputFileChanges
+
+      processFileChanges(
+        fileChanges,
         esbuildResourcesDirectory.value,
-        targetDir,
-        esbuildResourcesDirectory.value
+        targetDir
       )
+
+      if (fileChanges.hasChanges) {
+        ChangeStatus.Dirty
+      } else ChangeStatus.Pristine
     },
-    watchSources += Watched
-      .WatchSource(
-        esbuildResourcesDirectory.value,
-        AllPassFilter,
-        new SimpleFileFilter(
-          _.getCanonicalPath.startsWith(
-            (esbuildResourcesDirectory.value / "node_modules").getCanonicalPath
-          )
-        )
-      )
-      .withRecursive(true),
     esbuildInstall := {
       val changeStatus = esbuildCopyResources.value
 
@@ -296,30 +287,52 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
           .map(Script)
           .toSeq
       }
-    }.value
+    }.value,
+    esbuildFastLinkJSWrapper := {
+      fastLinkJS.value
+      FileTreeView.default
+        .list((fastLinkJS / scalaJSLinkerOutputDirectory).value.toGlob / **)
+        .map { case (path, _) =>
+          path
+        }
+    },
+    esbuildFullLinkJSWrapper := {
+      fullLinkJS.value
+      FileTreeView.default
+        .list((fullLinkJS / scalaJSLinkerOutputDirectory).value.toGlob / **)
+        .map { case (path, _) =>
+          path
+        }
+    }
   ) ++
     perScalaJSStageSettings(Stage.FastOpt) ++
     perScalaJSStageSettings(Stage.FullOpt)
 
   private def perScalaJSStageSettings(stage: Stage): Seq[Setting[_]] = {
-    val stageTask = stage match {
-      case Stage.FastOpt => fastLinkJS
-      case Stage.FullOpt => fullLinkJS
+    val (stageTask, stageTaskWrapper) = stage match {
+      case Stage.FastOpt => (fastLinkJS, esbuildFastLinkJSWrapper)
+      case Stage.FullOpt => (fullLinkJS, esbuildFullLinkJSWrapper)
     }
 
     Seq(
       stageTask / esbuildCompile := {
         val changeStatus = esbuildInstall.value
 
+        stageTaskWrapper.value
+
         val targetDir = (esbuildInstall / crossTarget).value
 
-        stageTask.value
+        val fileChanges = stageTaskWrapper.outputFileChanges
 
-        copyChanges(streams.value.log)(
+        processFileChanges(
+          fileChanges,
           (stageTask / scalaJSLinkerOutputDirectory).value,
-          targetDir,
-          (stageTask / scalaJSLinkerOutputDirectory).value
-        ).combine(changeStatus)
+          targetDir
+        )
+
+        (if (fileChanges.hasChanges) {
+           ChangeStatus.Dirty
+         } else ChangeStatus.Pristine).combine(changeStatus)
       },
       stageTask / esbuildBundle / crossTarget := (esbuildInstall / crossTarget).value / "out",
       stageTask / esbuildBundleScript := {
