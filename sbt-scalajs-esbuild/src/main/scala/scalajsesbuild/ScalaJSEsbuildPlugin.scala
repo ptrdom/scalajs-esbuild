@@ -94,7 +94,9 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       .iterator()
       .asScala
       .map(_.toFile)
-      .filter(file => file.getAbsolutePath != currentDirectory.getAbsolutePath)
+      .filter(file =>
+        file.getAbsolutePath != currentDirectory.getAbsolutePath && file.name != "node_modules"
+      )
       .foldLeft[ChangeStatus](ChangeStatus.Pristine) {
         case (changeStatus, file) =>
           if (file.isDirectory) {
@@ -235,9 +237,17 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         esbuildResourcesDirectory.value
       )
     },
-    watchSources := (watchSources.value ++ Seq(
-      Watched.WatchSource(esbuildResourcesDirectory.value)
-    )),
+    watchSources += Watched
+      .WatchSource(
+        esbuildResourcesDirectory.value,
+        AllPassFilter,
+        new SimpleFileFilter(
+          _.getCanonicalPath.startsWith(
+            (esbuildResourcesDirectory.value / "node_modules").getCanonicalPath
+          )
+        )
+      )
+      .withRecursive(true),
     esbuildInstall := {
       val changeStatus = esbuildCopyResources.value
 

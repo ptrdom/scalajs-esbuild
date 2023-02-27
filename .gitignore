@@ -13,6 +13,7 @@ target/
 **/sbt-test/**/.idea
 **/sbt-test/**/target
 **/sbt-test/**/build.properties
+**/sbt-test/**/node_modules
 **/sbt-test/**/package-lock.json
 **/sbt-test/**/yarn.lock
 **/sbt-test/**/pnpm-lock.yaml
