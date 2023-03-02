@@ -158,6 +158,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
          |  logOverride: {
          |    'equals-negative-zero': 'silent',
          |  },
+         |  logLevel: "info",
          |""".stripMargin.some,
       if (hashOutputFiles) {
         """
