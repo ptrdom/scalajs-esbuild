@@ -142,7 +142,8 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
   private def esbuildOptions(
       entryPoints: Seq[String],
       outdir: String,
-      hashOutputFiles: Boolean
+      hashOutputFiles: Boolean,
+      minify: Boolean
   ) = {
     val entryPointsFn: Seq[String] => String = _.map(escapePathString)
       .mkString(",")
@@ -164,6 +165,11 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         """
           |  entryNames: '[name]-[hash]',
           |  assetNames: '[name]-[hash]',
+          |""".stripMargin.some
+      } else None,
+      if (minify) {
+        """
+          |  minify: true,
           |""".stripMargin.some
       } else None
     ).flatten.mkString
@@ -345,9 +351,6 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         val outdir =
           (stageTask / esbuildBundle / crossTarget).value.absolutePath
 
-        // TODO either do not hash in `run` and `test` or interpret bundling result in `jsEnvInput`
-        val hashOutputFiles = false
-
         s"""
              |const esbuild = require("esbuild");
              |const fs = require('fs');
@@ -357,7 +360,9 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
              |    ${esbuildOptions(
             entryPoints,
             outdir,
-            hashOutputFiles
+            hashOutputFiles =
+              true, // TODO either do not hash in `run` and `test` or interpret bundling result in `jsEnvInput`
+            minify = true
           )}
              |  })
              |
@@ -403,11 +408,13 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
             .toSeq
           val outdir =
             (stageTask / esbuildServeStart / crossTarget).value.absolutePath
+          val outdirEscaped = escapePathString(outdir)
 
           s"""
              |const http = require("http");
              |const esbuild = require("esbuild");
              |const fs = require('fs');
+             |const htmlTransform = require("./html-transform.cjs")
              |
              |const serve = async () => {
              |    // Start esbuild's local web server. Random port will be chosen by esbuild.
@@ -430,7 +437,8 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
              |      ${esbuildOptions(
               entryPoints,
               outdir,
-              hashOutputFiles = false
+              hashOutputFiles = false,
+              minify = false
             )}
              |      plugins: plugins,
              |    });
@@ -438,7 +446,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
              |    await ctx.watch()
              |
              |    const { host, port } = await ctx.serve({
-             |        servedir: '${escapePathString(outdir)}',
+             |        servedir: '$outdirEscaped',
              |        port: 8001
              |    });
              |
@@ -508,6 +516,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
              |                  </script>
              |                </head>
              |                `)
+             |              processedHtml = htmlTransform.htmlTransform(processedHtml, "$outdirEscaped");
              |              res.writeHead(200, {"Content-Type": "text/html"} )
              |              res.write(processedHtml);
              |              res.end();
