@@ -376,6 +376,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         val log = streams.value.log
 
         val changeStatus = (stageTask / esbuildCompile).value
+        // TODO add script change detection
         val bundlingScript = (stageTask / esbuildBundleScript).value
 
         if (changeStatus == ChangeStatus.Dirty) {
