@@ -352,7 +352,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
           (stageTask / esbuildBundle / crossTarget).value.absolutePath
 
         s"""
-             |const esbuild = require("esbuild");
+             |const esbuild = require('esbuild');
              |const fs = require('fs');
              |
              |const bundle = async () => {
@@ -364,12 +364,12 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
               true, // TODO either do not hash in `run` and `test` or interpret bundling result in `jsEnvInput`
             minify = true
           )}
-             |  })
+             |  });
              |
-             |  fs.writeFileSync('meta.json', JSON.stringify(result.metafile))
+             |  fs.writeFileSync('meta.json', JSON.stringify(result.metafile));
              |}
              |
-             |bundle()
+             |bundle();
              |""".stripMargin
       },
       stageTask / esbuildBundle := {
@@ -411,10 +411,74 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
           val outdirEscaped = escapePathString(outdir)
 
           s"""
-             |const http = require("http");
-             |const esbuild = require("esbuild");
+             |const http = require('http');
+             |const esbuild = require('esbuild');
+             |const jsdom = require("jsdom")
+             |const { JSDOM } = jsdom;
              |const fs = require('fs');
-             |const htmlTransform = require("./html-transform.cjs")
+             |const path = require('path');
+             |
+             |const htmlTransform = (htmlString, outDirectory) => {
+             |  const workingDirectory = __dirname;
+             |
+             |  const meta = JSON.parse(fs.readFileSync(path.join(__dirname, "meta.json")));
+             |
+             |  const dom = new JSDOM(htmlString);
+             |  dom.window.document.querySelectorAll("script").forEach((el) => {
+             |    let output;
+             |    let outputBundle;
+             |    Object.keys(meta.outputs).every((key) => {
+             |      const maybeOutput = meta.outputs[key];
+             |      if (el.src.endsWith(maybeOutput.entryPoint)) {
+             |        output = maybeOutput;
+             |        outputBundle = key;
+             |        return false;
+             |      }
+             |      return true;
+             |    })
+             |    if (output) {
+             |     let absolute = el.src.startsWith("/");
+             |     el.src = el.src.replace(output.entryPoint, path.relative(outDirectory, path.join(workingDirectory, outputBundle)));
+             |     if (output.cssBundle) {
+             |       const link = dom.window.document.createElement("link");
+             |       link.rel = "stylesheet";
+             |       link.href = (absolute ? "/" : "") + path.relative(outDirectory, path.join(workingDirectory, output.cssBundle));
+             |       el.parentNode.insertBefore(link, el.nextSibling);
+             |     }
+             |    }
+             |  });
+             |  return dom.serialize();
+             |}
+             |
+             |const esbuildLiveReload = (htmlString) => {
+             |  return htmlString
+             |    .toString()
+             |    .replace("</head>", `
+             |      <script type="text/javascript">
+             |        // Based on https://esbuild.github.io/api/#live-reload
+             |        new EventSource('/esbuild').addEventListener('change', e => {
+             |          const { added, removed, updated } = JSON.parse(e.data)
+             |
+             |          if (!added.length && !removed.length && updated.length === 1) {
+             |            for (const link of document.getElementsByTagName("link")) {
+             |              const url = new URL(link.href)
+             |
+             |              if (url.host === location.host && url.pathname === updated[0]) {
+             |                const next = link.cloneNode()
+             |                next.href = updated[0] + '?' + Math.random().toString(36).slice(2)
+             |                next.onload = () => link.remove()
+             |                link.parentNode.insertBefore(next, link.nextSibling)
+             |                return
+             |              }
+             |            }
+             |          }
+             |
+             |          location.reload()
+             |        })
+             |      </script>
+             |    </head>
+             |    `);
+             |}
              |
              |const serve = async () => {
              |    // Start esbuild's local web server. Random port will be chosen by esbuild.
@@ -489,36 +553,8 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
              |            if (err) {
              |              throw err;
              |            } else {
-             |              let processedHtml = html
-             |                .toString()
-             |                .replace("</head>", `
-             |                  <script type="text/javascript">
-             |                    // Based on https://esbuild.github.io/api/#live-reload
-             |                    new EventSource('/esbuild').addEventListener('change', e => {
-             |                      const { added, removed, updated } = JSON.parse(e.data)
-             |
-             |                      if (!added.length && !removed.length && updated.length === 1) {
-             |                        for (const link of document.getElementsByTagName("link")) {
-             |                          const url = new URL(link.href)
-             |
-             |                          if (url.host === location.host && url.pathname === updated[0]) {
-             |                            const next = link.cloneNode()
-             |                            next.href = updated[0] + '?' + Math.random().toString(36).slice(2)
-             |                            next.onload = () => link.remove()
-             |                            link.parentNode.insertBefore(next, link.nextSibling)
-             |                            return
-             |                          }
-             |                        }
-             |                      }
-             |
-             |                      location.reload()
-             |                    })
-             |                  </script>
-             |                </head>
-             |                `)
-             |              processedHtml = htmlTransform.htmlTransform(processedHtml, "$outdirEscaped");
-             |              res.writeHead(200, {"Content-Type": "text/html"} )
-             |              res.write(processedHtml);
+             |              res.writeHead(200, {"Content-Type": "text/html"});
+             |              res.write(htmlTransform(esbuildLiveReload(html), "$outdirEscaped"));
              |              res.end();
              |            }
              |          });
