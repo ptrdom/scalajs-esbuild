@@ -13,6 +13,8 @@ import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.jsEnvInput
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerConfig
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerOutputDirectory
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
+import org.typelevel.jawn.ast.JObject
+import org.typelevel.jawn.ast.JParser
 import sbt._
 import sbt.AutoPlugin
 import sbt.Keys._
@@ -288,8 +290,33 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       Def.task {
         (stageTask / esbuildBundle).value
 
+        val targetDir = (stageTask / esbuildInstall / crossTarget).value
+
+        val metaJson =
+          JParser.parseUnsafe(
+            IO.read(targetDir / "sbt-scalajs-esbuild-bundle-meta.json")
+          )
+
         jsFileNames(stageTask.value.data)
-          .map((stageTask / esbuildBundle / crossTarget).value / _)
+          .map { jsFileName =>
+            metaJson
+              .get("outputs")
+              .asInstanceOf[JObject]
+              .vs
+              .collectFirst {
+                case (outputBundle, output)
+                    if output
+                      .asInstanceOf[JObject]
+                      .get("entryPoint")
+                      .getString
+                      .contains(jsFileName) =>
+                  outputBundle
+              }
+              .getOrElse(
+                sys.error(s"Output bundle not found for module [$jsFileName]")
+              )
+          }
+          .map((stageTask / esbuildInstall / crossTarget).value / _)
           .map(_.toPath)
           .map(Script)
           .toSeq
@@ -366,7 +393,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
           )}
              |  });
              |
-             |  fs.writeFileSync('meta.json', JSON.stringify(result.metafile));
+             |  fs.writeFileSync('sbt-scalajs-esbuild-bundle-meta.json', JSON.stringify(result.metafile));
              |}
              |
              |bundle();
@@ -422,7 +449,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
              |const htmlTransform = (htmlString, outDirectory) => {
              |  const workingDirectory = __dirname;
              |
-             |  const meta = JSON.parse(fs.readFileSync(path.join(__dirname, "meta.json")));
+             |  const meta = JSON.parse(fs.readFileSync(path.join(__dirname, "sbt-scalajs-esbuild-serve-meta.json")));
              |
              |  const dom = new JSDOM(htmlString);
              |  dom.window.document.querySelectorAll("script").forEach((el) => {
@@ -490,9 +517,9 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
              |        let count = 0;
              |        build.onEnd(result => {
              |          if (count++ === 0) {
-             |            fs.writeFileSync('meta.json', JSON.stringify(result.metafile));
+             |            fs.writeFileSync('sbt-scalajs-esbuild-serve-meta.json', JSON.stringify(result.metafile));
              |          } else {
-             |            fs.writeFileSync('meta.json', JSON.stringify(result.metafile));
+             |            fs.writeFileSync('sbt-scalajs-esbuild-serve-meta.json', JSON.stringify(result.metafile));
              |          }
              |        });
              |      },

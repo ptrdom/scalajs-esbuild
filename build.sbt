@@ -32,8 +32,22 @@ lazy val commonSettings = Seq(
 lazy val `sbt-scalajs-esbuild` =
   project
     .in(file("sbt-scalajs-esbuild"))
-    .enablePlugins(SbtPlugin)
+    .enablePlugins(SbtPlugin, ShadingPlugin)
     .settings(commonSettings)
     .settings(
-      addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.10.1")
+      addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.10.1"),
+      libraryDependencies += "org.typelevel" %% "jawn-ast" % "1.4.0",
+      shadedModules ++= Set(
+        "org.typelevel" %% "jawn-ast",
+        "org.typelevel" %% "jawn-parser",
+        "org.typelevel" %% "jawn-util"
+      ),
+      shadingRules ++= Seq(
+        ShadingRule
+          .moveUnder(
+            "org.typelevel.jawn",
+            "scalajsesbuild.shaded.org.typelevel.jawn"
+          )
+      ),
+      validNamespaces ++= Set("scalajsesbuild", "sbt")
     )
