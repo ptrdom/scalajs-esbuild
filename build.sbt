@@ -51,3 +51,9 @@ lazy val `sbt-scalajs-esbuild` =
       ),
       validNamespaces ++= Set("scalajsesbuild", "sbt")
     )
+
+lazy val `sbt-scalajs-esbuild-dom` = project
+  .in(file("sbt-scalajs-esbuild-dom"))
+  .enablePlugins(SbtPlugin)
+  .settings(commonSettings)
+  .dependsOn(`sbt-scalajs-esbuild`)

@@ -4,7 +4,7 @@ val sourcePlugins = if (!sys.props.contains("plugin.source")) {
   Seq(
     ProjectRef(
       file("../../../../../../"),
-      "sbt-scalajs-esbuild"
+      "sbt-scalajs-esbuild-dom"
     ): ClasspathDep[ProjectReference]
   )
 }
