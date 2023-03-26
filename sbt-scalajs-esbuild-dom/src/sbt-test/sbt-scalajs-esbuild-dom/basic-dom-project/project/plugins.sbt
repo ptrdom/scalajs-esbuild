@@ -20,7 +20,9 @@ if (sourcePlugins.nonEmpty) {
     sys.error("'plugin.version' environment variable is not set")
   )
   Seq(
-    addSbtPlugin("me.ptrdom" % "sbt-scalajs-esbuild" % scalaJSEsbuildVersion)
+    addSbtPlugin(
+      "me.ptrdom" % "sbt-scalajs-esbuild-dom" % scalaJSEsbuildVersion
+    )
   )
 }
 

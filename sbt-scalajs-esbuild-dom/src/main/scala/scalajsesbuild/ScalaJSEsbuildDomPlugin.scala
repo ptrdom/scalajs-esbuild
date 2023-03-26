@@ -1,23 +1,15 @@
 package scalajsesbuild
 
-import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fastLinkJS
-import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fullLinkJS
 import sbt.AutoPlugin
 import sbt._
 import sbt.Keys._
-import scalajsesbuild.ScalaJSEsbuildPlugin.Stage
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildCompile
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFastLinkJSWrapper
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFullLinkJSWrapper
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildRunner
-import scalajsesbuild.ScalaJSEsbuildPlugin.esbuildOptions
-import scalajsesbuild.ScalaJSEsbuildPlugin.escapePathString
-import scalajsesbuild.ScalaJSEsbuildPlugin.jsFileNames
 
 import scala.sys.process._
 
-class ScalajsEsbuildDomPlugin extends AutoPlugin {
+object ScalaJSEsbuildDomPlugin extends AutoPlugin {
 
   override def requires = ScalaJSEsbuildPlugin
 
@@ -42,10 +34,7 @@ class ScalajsEsbuildDomPlugin extends AutoPlugin {
       perScalaJSStageSettings(Stage.FullOpt)
 
   private def perScalaJSStageSettings(stage: Stage): Seq[Setting[_]] = {
-    val stageTask = stage match {
-      case Stage.FastOpt => fastLinkJS
-      case Stage.FullOpt => fullLinkJS
-    }
+    val stageTask = stage.stageTask
 
     // TODO deal with entry points when bundling
 

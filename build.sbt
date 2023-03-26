@@ -20,7 +20,7 @@ inThisBuild(
 
 lazy val `scalajs-esbuild` = (project in file("."))
   .settings(publish / skip := true)
-  .aggregate(`sbt-scalajs-esbuild`)
+  .aggregate(`sbt-scalajs-esbuild`, `sbt-scalajs-esbuild-dom`)
 
 lazy val commonSettings = Seq(
   scriptedLaunchOpts ++= Seq(
@@ -55,5 +55,11 @@ lazy val `sbt-scalajs-esbuild` =
 lazy val `sbt-scalajs-esbuild-dom` = project
   .in(file("sbt-scalajs-esbuild-dom"))
   .enablePlugins(SbtPlugin)
-  .settings(commonSettings)
+  .settings(
+    commonSettings,
+    scriptedDependencies := {
+      val () = scriptedDependencies.value
+      val () = (`sbt-scalajs-esbuild` / publishLocal).value
+    }
+  )
   .dependsOn(`sbt-scalajs-esbuild`)
