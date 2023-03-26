@@ -20,7 +20,7 @@ inThisBuild(
 
 lazy val `scalajs-esbuild` = (project in file("."))
   .settings(publish / skip := true)
-  .aggregate(`sbt-scalajs-esbuild`, `sbt-scalajs-esbuild-dom`)
+  .aggregate(`sbt-scalajs-esbuild`, `sbt-scalajs-esbuild-web`)
 
 lazy val commonSettings = Seq(
   scriptedLaunchOpts ++= Seq(
@@ -52,8 +52,8 @@ lazy val `sbt-scalajs-esbuild` =
       validNamespaces ++= Set("scalajsesbuild", "sbt")
     )
 
-lazy val `sbt-scalajs-esbuild-dom` = project
-  .in(file("sbt-scalajs-esbuild-dom"))
+lazy val `sbt-scalajs-esbuild-web` = project
+  .in(file("sbt-scalajs-esbuild-web"))
   .enablePlugins(SbtPlugin)
   .settings(
     commonSettings,

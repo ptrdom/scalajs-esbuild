@@ -227,6 +227,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         // keep different use cases in mind and look into ways to accommodate them
         val hashOutputFiles = true
 
+        // language=JS
         s"""
              |const esbuild = require('esbuild');
              |const fs = require('fs');

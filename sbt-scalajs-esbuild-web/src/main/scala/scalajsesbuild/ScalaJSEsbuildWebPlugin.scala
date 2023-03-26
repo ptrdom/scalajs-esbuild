@@ -9,7 +9,7 @@ import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildRunner
 
 import scala.sys.process._
 
-object ScalaJSEsbuildDomPlugin extends AutoPlugin {
+object ScalaJSEsbuildWebPlugin extends AutoPlugin {
 
   override def requires = ScalaJSEsbuildPlugin
 
@@ -60,6 +60,7 @@ object ScalaJSEsbuildDomPlugin extends AutoPlugin {
             (stageTask / esbuildServeStart / crossTarget).value.absolutePath
           val outdirEscaped = escapePathString(outdir)
 
+          // language=JS
           s"""
              |const http = require('http');
              |const esbuild = require('esbuild');

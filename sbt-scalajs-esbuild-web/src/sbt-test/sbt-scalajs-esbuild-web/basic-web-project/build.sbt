@@ -1,4 +1,4 @@
-enablePlugins(ScalaJSEsbuildDomPlugin)
+enablePlugins(ScalaJSEsbuildWebPlugin)
 
 scalaVersion := "2.13.8"
 
