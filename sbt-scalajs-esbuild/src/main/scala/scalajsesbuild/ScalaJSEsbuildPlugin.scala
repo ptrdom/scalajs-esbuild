@@ -33,20 +33,20 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       settingKey("Package manager to use for esbuild tasks")
     val esbuildResourcesDirectory: SettingKey[sbt.File] =
       settingKey("esbuild resource directory")
-    val esbuildCopyResources: TaskKey[ChangeStatus] =
+    val esbuildCopyResources: TaskKey[FileChanges] =
       taskKey("Copies over esbuild resources to target directory")
-    val esbuildInstall: TaskKey[ChangeStatus] =
+    val esbuildInstall: TaskKey[FileChanges] =
       taskKey(
         "Runs package manager's `install` in target directory on copied over esbuild resources"
       )
-    val esbuildCompile: TaskKey[ChangeStatus] =
+    val esbuildCompile: TaskKey[FileChanges] =
       taskKey(
         "Compiles module and copies output to target directory"
       )
     val esbuildBundleScript: TaskKey[String] = taskKey(
       "esbuild script used for bundling"
     ) // TODO consider doing the writing of the script upon call of this task, then use FileChanges to track changes to the script
-    val esbuildBundle: TaskKey[ChangeStatus] = taskKey(
+    val esbuildBundle: TaskKey[FileChanges] = taskKey(
       "Bundles module with esbuild"
     )
 
@@ -90,9 +90,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         targetDir
       )
 
-      if (fileChanges.hasChanges) {
-        ChangeStatus.Dirty
-      } else ChangeStatus.Pristine
+      fileChanges
     },
     esbuildInstall := {
       val changeStatus = esbuildCopyResources.value
@@ -195,23 +193,21 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
 
     Seq(
       stageTask / esbuildCompile := {
-        val changeStatus = esbuildInstall.value
+        val installFileChanges = esbuildInstall.value
 
         stageTaskWrapper.value
 
         val targetDir = (esbuildInstall / crossTarget).value
 
-        val fileChanges = stageTaskWrapper.outputFileChanges
+        val stageTaskFileChanges = stageTaskWrapper.outputFileChanges
 
         processFileChanges(
-          fileChanges,
+          stageTaskFileChanges,
           (stageTask / scalaJSLinkerOutputDirectory).value,
           targetDir
         )
 
-        (if (fileChanges.hasChanges) {
-           ChangeStatus.Dirty
-         } else ChangeStatus.Pristine).combine(changeStatus)
+        installFileChanges ++ stageTaskFileChanges
       },
       stageTask / esbuildBundle / crossTarget := (esbuildInstall / crossTarget).value / "out",
       stageTask / esbuildBundleScript := {
@@ -251,11 +247,10 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       stageTask / esbuildBundle := {
         val log = streams.value.log
 
-        val changeStatus = (stageTask / esbuildCompile).value
-        // TODO add script change detection
+        val fileChanges = (stageTask / esbuildCompile).value
         val bundlingScript = (stageTask / esbuildBundleScript).value
 
-        if (changeStatus == ChangeStatus.Dirty) {
+        if (fileChanges.hasChanges) {
           val targetDir = (esbuildInstall / crossTarget).value
 
           val scriptFileName = "sbt-scalajs-esbuild-bundle-script.cjs"
@@ -264,7 +259,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
           esbuildRunner.value.run(log)(scriptFileName, targetDir)
         }
 
-        changeStatus
+        fileChanges
       }
     )
   }

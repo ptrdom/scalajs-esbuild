@@ -151,20 +151,16 @@ package object scalajsesbuild {
     }
   }
 
-  // TODO consider using sbt FileChanges instead
-  sealed trait ChangeStatus
-  object ChangeStatus {
-    case object Pristine extends ChangeStatus
-    case object Dirty extends ChangeStatus
-
-    implicit class ChangeStatusOps(changeStatus: ChangeStatus) {
-      def combine(other: ChangeStatus): ChangeStatus = {
-        (changeStatus, other) match {
-          case (Pristine, Pristine) =>
-            Pristine
-          case _ => Dirty
-        }
-      }
+  implicit private[scalajsesbuild] class FileChangesOps(
+      fileChanges: FileChanges
+  ) {
+    def ++(that: FileChanges) = {
+      FileChanges(
+        created = fileChanges.created ++ that.created,
+        deleted = fileChanges.deleted ++ that.deleted,
+        modified = fileChanges.modified ++ that.modified,
+        unmodified = fileChanges.unmodified ++ that.unmodified
+      )
     }
   }
 }
