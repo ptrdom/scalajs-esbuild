@@ -1,8 +1,16 @@
 package scalajsesbuild
 
+import org.scalajs.jsenv.Input.Script
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.jsEnvInput
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
+import org.scalajs.sbtplugin.Stage
+import org.typelevel.jawn.ast.JObject
+import org.typelevel.jawn.ast.JParser
 import sbt.AutoPlugin
 import sbt._
 import sbt.Keys._
+import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
+import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundleScript
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildCompile
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildRunner
@@ -29,19 +37,61 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
     inConfig(Compile)(perConfigSettings) ++
       inConfig(Test)(perConfigSettings)
 
-  private lazy val perConfigSettings: Seq[Setting[_]] =
+  private lazy val perConfigSettings: Seq[Setting[_]] = Seq(
+    jsEnvInput := Def.taskDyn {
+      val stageTask = scalaJSStage.value.stageTask
+      Def.task {
+        (stageTask / esbuildBundle).value
+
+        val targetDir = (stageTask / esbuildInstall / crossTarget).value
+
+        val metaJson =
+          JParser.parseUnsafe(
+            IO.read(targetDir / "sbt-scalajs-esbuild-bundle-meta.json")
+          )
+
+        jsFileNames(stageTask.value.data)
+          .map { jsFileName =>
+            metaJson
+              .get("outputs")
+              .asInstanceOf[JObject]
+              .vs
+              .collectFirst {
+                case (outputBundle, output)
+                    if output
+                      .asInstanceOf[JObject]
+                      .get("entryPoint")
+                      .getString
+                      .contains(jsFileName) =>
+                  outputBundle
+              }
+              .getOrElse(
+                sys.error(s"Output bundle not found for module [$jsFileName]")
+              )
+          }
+          .map((stageTask / esbuildInstall / crossTarget).value / _)
+          .map(_.toPath)
+          .map(Script)
+          .toSeq
+      }
+    }.value
+  ) ++
     perScalaJSStageSettings(Stage.FastOpt) ++
-      perScalaJSStageSettings(Stage.FullOpt)
+    perScalaJSStageSettings(Stage.FullOpt)
 
   private def perScalaJSStageSettings(stage: Stage): Seq[Setting[_]] = {
     val stageTask = stage.stageTask
 
     // TODO deal with entry points when bundling
 
-    {
+    Seq(
+      stageTask / esbuildBundleScript := {
+        generateEsbuildBundleScript(stageTask, hashOutputFiles = true).value
+      }
+    ) ++ {
       var process: Option[Process] = None
 
-      def terminateProcess(log: Logger) = {
+      val terminateProcess = (log: Logger) => {
         process.foreach { process =>
           log.info(s"Stopping esbuild serve process")
           process.destroy()

@@ -1,10 +1,7 @@
 package scalajsesbuild
 
 import java.nio.file.Path
-
 import org.scalajs.jsenv.Input.Script
-import org.scalajs.linker.interface.Report
-import org.scalajs.linker.interface.unstable
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.ModuleKind
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fastLinkJS
@@ -13,8 +10,7 @@ import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.jsEnvInput
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerConfig
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerOutputDirectory
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
-import org.typelevel.jawn.ast.JObject
-import org.typelevel.jawn.ast.JParser
+import org.scalajs.sbtplugin.Stage
 import sbt._
 import sbt.AutoPlugin
 import sbt.Keys._
@@ -127,41 +123,12 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       changeStatus
     },
     jsEnvInput := Def.taskDyn {
-      val stageTask = scalaJSStage.value match {
-        case org.scalajs.sbtplugin.Stage.FastOpt => fastLinkJS
-        case org.scalajs.sbtplugin.Stage.FullOpt => fullLinkJS
-      }
+      val stageTask = scalaJSStage.value.stageTask
       Def.task {
         (stageTask / esbuildBundle).value
 
-        val targetDir = (stageTask / esbuildInstall / crossTarget).value
-
-        // parsing of esbuild bundling metadata is only necessary because of output hashing
-        val metaJson =
-          JParser.parseUnsafe(
-            IO.read(targetDir / "sbt-scalajs-esbuild-bundle-meta.json")
-          )
-
         jsFileNames(stageTask.value.data)
-          .map { jsFileName =>
-            metaJson
-              .get("outputs")
-              .asInstanceOf[JObject]
-              .vs
-              .collectFirst {
-                case (outputBundle, output)
-                    if output
-                      .asInstanceOf[JObject]
-                      .get("entryPoint")
-                      .getString
-                      .contains(jsFileName) =>
-                  outputBundle
-              }
-              .getOrElse(
-                sys.error(s"Output bundle not found for module [$jsFileName]")
-              )
-          }
-          .map((stageTask / esbuildInstall / crossTarget).value / _)
+          .map((stageTask / esbuildBundle / crossTarget).value / _)
           .map(_.toPath)
           .map(Script)
           .toSeq
@@ -211,38 +178,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       },
       stageTask / esbuildBundle / crossTarget := (esbuildInstall / crossTarget).value / "out",
       stageTask / esbuildBundleScript := {
-        val targetDir = (esbuildInstall / crossTarget).value
-
-        val entryPoints = jsFileNames(stageTask.value.data)
-          .map(jsFileName => s"'${(targetDir / jsFileName).absolutePath}'")
-          .toSeq
-        val outdir =
-          (stageTask / esbuildBundle / crossTarget).value.absolutePath
-
-        // bundling is not necessary in `test` and `run` tasks, but it can be necessary when bundling for production
-        // keep different use cases in mind and look into ways to accommodate them
-        val hashOutputFiles = true
-
-        // language=JS
-        s"""
-             |const esbuild = require('esbuild');
-             |const fs = require('fs');
-             |
-             |const bundle = async () => {
-             |  const result = await esbuild.build({
-             |    ${esbuildOptions(
-            entryPoints,
-            outdir,
-            hashOutputFiles = hashOutputFiles,
-            minify = true
-          )}
-             |  });
-             |
-             |  fs.writeFileSync('sbt-scalajs-esbuild-bundle-meta.json', JSON.stringify(result.metafile));
-             |}
-             |
-             |bundle();
-             |""".stripMargin
+        generateEsbuildBundleScript(stageTask, hashOutputFiles = false).value
       },
       stageTask / esbuildBundle := {
         val log = streams.value.log

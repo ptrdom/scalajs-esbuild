@@ -1,30 +1,29 @@
 import java.nio.file.Path
-
 import org.scalajs.linker.interface.Report
 import org.scalajs.linker.interface.unstable
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fastLinkJS
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fullLinkJS
-import sbt.*
+import sbt._
+import sbt.Keys.crossTarget
 import sbt.sbtOptionSyntaxOptionIdOps
+import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFastLinkJSWrapper
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFullLinkJSWrapper
+import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
 
 package object scalajsesbuild {
 
-  private[scalajsesbuild] sealed trait Stage {
-    def stageTask: TaskKey[Attributed[Report]]
-    def stageTaskWrapper: TaskKey[Seq[Path]]
-  }
-  private[scalajsesbuild] object Stage {
-    case object FastOpt extends Stage {
-      override def stageTask = fastLinkJS
-      override def stageTaskWrapper: TaskKey[Seq[Path]] =
-        esbuildFastLinkJSWrapper
+  private[scalajsesbuild] implicit class ScalaJSStageOps(
+      stage: org.scalajs.sbtplugin.Stage
+  ) {
+    def stageTask: TaskKey[sbt.Attributed[Report]] = stage match {
+      case org.scalajs.sbtplugin.Stage.FastOpt => fastLinkJS
+      case org.scalajs.sbtplugin.Stage.FullOpt => fullLinkJS
     }
-    case object FullOpt extends Stage {
-      override def stageTask = fullLinkJS
-      override def stageTaskWrapper: TaskKey[Seq[Path]] =
-        esbuildFullLinkJSWrapper
+
+    def stageTaskWrapper: TaskKey[Seq[Path]] = stage match {
+      case org.scalajs.sbtplugin.Stage.FastOpt => esbuildFastLinkJSWrapper
+      case org.scalajs.sbtplugin.Stage.FullOpt => esbuildFullLinkJSWrapper
     }
   }
 
@@ -162,5 +161,39 @@ package object scalajsesbuild {
         unmodified = fileChanges.unmodified ++ that.unmodified
       )
     }
+  }
+
+  private[scalajsesbuild] def generateEsbuildBundleScript(
+      stageTask: TaskKey[Attributed[Report]],
+      hashOutputFiles: Boolean
+  ) = Def.task {
+    val targetDir = (esbuildInstall / crossTarget).value
+
+    val entryPoints = jsFileNames(stageTask.value.data)
+      .map(jsFileName => s"'${(targetDir / jsFileName).absolutePath}'")
+      .toSeq
+    val outdir =
+      (stageTask / esbuildBundle / crossTarget).value.absolutePath
+
+    // language=JS
+    s"""
+       |const esbuild = require('esbuild');
+       |const fs = require('fs');
+       |
+       |const bundle = async () => {
+       |  const result = await esbuild.build({
+       |    ${esbuildOptions(
+        entryPoints,
+        outdir,
+        hashOutputFiles = hashOutputFiles,
+        minify = true
+      )}
+       |  });
+       |
+       |  fs.writeFileSync('sbt-scalajs-esbuild-bundle-meta.json', JSON.stringify(result.metafile));
+       |}
+       |
+       |bundle();
+       |""".stripMargin
   }
 }
