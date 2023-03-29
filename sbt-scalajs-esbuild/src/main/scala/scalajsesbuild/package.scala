@@ -82,36 +82,33 @@ package object scalajsesbuild {
       entryPoints: Seq[String],
       outdir: String,
       hashOutputFiles: Boolean,
-      minify: Boolean
+      minify: Boolean,
+      spaces: Int
   ) = {
     val entryPointsFn: Seq[String] => String = _.map(escapePathString)
       .mkString(",")
     val outdirFn: String => String = escapePathString
 
     Seq(
-      s"""
-         |  entryPoints: [${entryPointsFn(entryPoints)}],
-         |  bundle: true,
-         |  outdir: '${outdirFn(outdir)}',
-         |  loader: { $esbuildLoaders },
-         |  metafile: true,
-         |  logOverride: {
-         |    'equals-negative-zero': 'silent',
-         |  },
-         |  logLevel: "info",
-         |""".stripMargin.some,
+      s"""|entryPoints: [${entryPointsFn(entryPoints)}],
+         |bundle: true,
+         |outdir: '${outdirFn(outdir)}',
+         |loader: { $esbuildLoaders },
+         |metafile: true,
+         |logOverride: {
+         |  'equals-negative-zero': 'silent',
+         |},
+         |logLevel: "info",""".stripMargin.some,
       if (hashOutputFiles) {
-        """
-          |  entryNames: '[name]-[hash]',
-          |  assetNames: '[name]-[hash]',
-          |""".stripMargin.some
+        """entryNames: '[name]-[hash]',
+          |assetNames: '[name]-[hash]',""".stripMargin.some
       } else None,
       if (minify) {
-        """
-          |  minify: true,
-          |""".stripMargin.some
+        "minify: true".some
       } else None
-    ).flatten.mkString
+    ).flatten.mkString.linesIterator
+      .map((" " * spaces) + _)
+      .mkString("\n")
   }
 
   private[scalajsesbuild] def escapePathString(pathString: String) =
@@ -164,36 +161,97 @@ package object scalajsesbuild {
   }
 
   private[scalajsesbuild] def generateEsbuildBundleScript(
-      stageTask: TaskKey[Attributed[Report]],
-      hashOutputFiles: Boolean
-  ) = Def.task {
-    val targetDir = (esbuildInstall / crossTarget).value
-
-    val entryPoints = jsFileNames(stageTask.value.data)
+      targetDir: File,
+      outdir: String,
+      stageTaskReport: Report,
+      hashOutputFiles: Boolean,
+      htmlEntryPoints: Seq[Path]
+  ) = {
+    val entryPoints = jsFileNames(stageTaskReport)
       .map(jsFileName => s"'${(targetDir / jsFileName).absolutePath}'")
       .toSeq
-    val outdir =
-      (stageTask / esbuildBundle / crossTarget).value.absolutePath
+    val outdirEscaped = escapePathString(outdir)
 
     // language=JS
     s"""
        |const esbuild = require('esbuild');
        |const fs = require('fs');
        |
+       |${if (htmlEntryPoints.nonEmpty)
+        Seq(
+          """const jsdom = require('jsdom')
+            |const { JSDOM } = jsdom;
+            |const path = require('path');""".stripMargin,
+          "",
+          htmlTransformScript
+        ).mkString("\n")
+      else ""}
+       |
        |const bundle = async () => {
        |  const result = await esbuild.build({
-       |    ${esbuildOptions(
+       |${esbuildOptions(
         entryPoints,
         outdir,
         hashOutputFiles = hashOutputFiles,
-        minify = true
+        minify = true,
+        spaces = 4
       )}
        |  });
        |
        |  fs.writeFileSync('sbt-scalajs-esbuild-bundle-meta.json', JSON.stringify(result.metafile));
+       |
+       |  const htmlEntryPoints = [
+       |    ${htmlEntryPoints
+        .map(htmlEntryPoint =>
+          Path.of(targetDir.absolutePath, htmlEntryPoint.toString)
+        )
+        .map("'" + _ + "'")
+        .mkString(", ")}
+       |  ];
+       |
+       |  htmlEntryPoints
+       |    .forEach((htmlEntryPoint) => {
+       |      const html = fs.readFileSync(htmlEntryPoint);
+       |      const transformedHtml = htmlTransform(html, '$outdirEscaped', result.metafile);
+       |      const relativePath = path.relative(__dirname, htmlEntryPoint);
+       |      fs.writeFileSync(path.join('$outdirEscaped', relativePath), transformedHtml);
+       |    });
        |}
        |
        |bundle();
        |""".stripMargin
+  }
+
+  private[scalajsesbuild] val htmlTransformScript = {
+    // language=JS
+    s"""const htmlTransform = (htmlString, outDirectory, meta) => {
+      |  const workingDirectory = __dirname;
+      |
+      |  const dom = new JSDOM(htmlString);
+      |  dom.window.document.querySelectorAll("script").forEach((el) => {
+      |    let output;
+      |    let outputBundle;
+      |    Object.keys(meta.outputs).every((key) => {
+      |      const maybeOutput = meta.outputs[key];
+      |      if (el.src.endsWith(maybeOutput.entryPoint)) {
+      |        output = maybeOutput;
+      |        outputBundle = key;
+      |        return false;
+      |      }
+      |      return true;
+      |    })
+      |    if (output) {
+      |     let absolute = el.src.startsWith("/");
+      |     el.src = el.src.replace(output.entryPoint, path.relative(outDirectory, path.join(workingDirectory, outputBundle)));
+      |     if (output.cssBundle) {
+      |       const link = dom.window.document.createElement("link");
+      |       link.rel = "stylesheet";
+      |       link.href = (absolute ? "/" : "") + path.relative(outDirectory, path.join(workingDirectory, output.cssBundle));
+      |       el.parentNode.insertBefore(link, el.nextSibling);
+      |     }
+      |    }
+      |  });
+      |  return dom.serialize();
+      |}""".stripMargin
   }
 }

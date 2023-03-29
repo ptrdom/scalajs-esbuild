@@ -15,6 +15,7 @@ import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildCompile
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildRunner
 
+import java.nio.file.Path
 import scala.sys.process._
 
 object ScalaJSEsbuildWebPlugin extends AutoPlugin {
@@ -22,6 +23,9 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
   override def requires = ScalaJSEsbuildPlugin
 
   object autoImport {
+    val esbuildBundleHtmlEntryPoints: TaskKey[Seq[Path]] = taskKey(
+      "HTML entry points to be injected and transformed during esbuild bundling"
+    )
     val esbuildServeScript: TaskKey[String] = taskKey(
       "esbuild script used for serving"
     ) // TODO consider doing the writing of the script upon call of this task, then use FileChanges to track changes to the script
@@ -85,8 +89,26 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
     // TODO deal with entry points when bundling
 
     Seq(
+      stageTask / esbuildBundleHtmlEntryPoints := Seq(
+        Path.of("index.html")
+      ),
       stageTask / esbuildBundleScript := {
-        generateEsbuildBundleScript(stageTask, hashOutputFiles = true).value
+        val targetDir = (esbuildInstall / crossTarget).value
+        val stageTaskReport = stageTask.value.data
+        val outdir =
+          (stageTask / esbuildBundle / crossTarget).value.absolutePath
+        val htmlEntryPoints = (stageTask / esbuildBundleHtmlEntryPoints).value
+        require(
+          !htmlEntryPoints.forall(_.isAbsolute),
+          "HTML entry point paths must be relative"
+        )
+        generateEsbuildBundleScript(
+          targetDir,
+          outdir,
+          stageTaskReport,
+          hashOutputFiles = true,
+          htmlEntryPoints
+        )
       }
     ) ++ {
       var process: Option[Process] = None
@@ -119,37 +141,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |const fs = require('fs');
              |const path = require('path');
              |
-             |const htmlTransform = (htmlString, outDirectory) => {
-             |  const workingDirectory = __dirname;
-             |
-             |  const meta = JSON.parse(fs.readFileSync(path.join(__dirname, "sbt-scalajs-esbuild-serve-meta.json")));
-             |
-             |  const dom = new JSDOM(htmlString);
-             |  dom.window.document.querySelectorAll("script").forEach((el) => {
-             |    let output;
-             |    let outputBundle;
-             |    Object.keys(meta.outputs).every((key) => {
-             |      const maybeOutput = meta.outputs[key];
-             |      if (el.src.endsWith(maybeOutput.entryPoint)) {
-             |        output = maybeOutput;
-             |        outputBundle = key;
-             |        return false;
-             |      }
-             |      return true;
-             |    })
-             |    if (output) {
-             |     let absolute = el.src.startsWith("/");
-             |     el.src = el.src.replace(output.entryPoint, path.relative(outDirectory, path.join(workingDirectory, outputBundle)));
-             |     if (output.cssBundle) {
-             |       const link = dom.window.document.createElement("link");
-             |       link.rel = "stylesheet";
-             |       link.href = (absolute ? "/" : "") + path.relative(outDirectory, path.join(workingDirectory, output.cssBundle));
-             |       el.parentNode.insertBefore(link, el.nextSibling);
-             |     }
-             |    }
-             |  });
-             |  return dom.serialize();
-             |}
+             |$htmlTransformScript
              |
              |const esbuildLiveReload = (htmlString) => {
              |  return htmlString
@@ -199,11 +191,12 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |    }];
              |
              |    const ctx  = await esbuild.context({
-             |      ${esbuildOptions(
+             |${esbuildOptions(
               entryPoints,
               outdir,
               hashOutputFiles = false,
-              minify = false
+              minify = false,
+              spaces = 6
             )}
              |      plugins: plugins,
              |    });
@@ -250,12 +243,15 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |            file = req.url;
              |          }
              |
-             |          fs.readFile("."+file, function (err, html) {
+             |          fs.readFile("."+file, function (err, data) {
              |            if (err) {
              |              throw err;
              |            } else {
              |              res.writeHead(200, {"Content-Type": "text/html"});
-             |              res.write(htmlTransform(esbuildLiveReload(html), "$outdirEscaped"));
+             |
+             |              const meta = JSON.parse(fs.readFileSync(path.join(__dirname, 'sbt-scalajs-esbuild-serve-meta.json')));
+             |              res.write(htmlTransform(esbuildLiveReload(data), '$outdirEscaped', meta));
+             |
              |              res.end();
              |            }
              |          });

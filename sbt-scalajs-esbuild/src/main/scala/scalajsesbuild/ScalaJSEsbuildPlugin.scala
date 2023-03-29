@@ -178,7 +178,17 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       },
       stageTask / esbuildBundle / crossTarget := (esbuildInstall / crossTarget).value / "out",
       stageTask / esbuildBundleScript := {
-        generateEsbuildBundleScript(stageTask, hashOutputFiles = false).value
+        val targetDir = (esbuildInstall / crossTarget).value
+        val stageTaskReport = stageTask.value.data
+        val outdir =
+          (stageTask / esbuildBundle / crossTarget).value.absolutePath
+        generateEsbuildBundleScript(
+          targetDir,
+          outdir,
+          stageTaskReport,
+          hashOutputFiles = false,
+          Seq.empty
+        )
       },
       stageTask / esbuildBundle := {
         val log = streams.value.log
