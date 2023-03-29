@@ -96,7 +96,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
         val targetDir = (esbuildInstall / crossTarget).value
         val stageTaskReport = stageTask.value.data
         val outdir =
-          (stageTask / esbuildBundle / crossTarget).value.absolutePath
+          (stageTask / esbuildBundle / crossTarget).value
         val htmlEntryPoints = (stageTask / esbuildBundleHtmlEntryPoints).value
         require(
           !htmlEntryPoints.forall(_.isAbsolute),
@@ -126,11 +126,10 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
           val targetDir = (esbuildInstall / crossTarget).value
 
           val entryPoints = jsFileNames(stageTask.value.data)
-            .map(jsFileName => s"'${(targetDir / jsFileName).absolutePath}'")
+            .map(targetDir / _)
             .toSeq
           val outdir =
-            (stageTask / esbuildServeStart / crossTarget).value.absolutePath
-          val outdirEscaped = escapePathString(outdir)
+            (stageTask / esbuildServeStart / crossTarget).value
 
           // language=JS
           s"""
@@ -204,7 +203,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |    await ctx.watch()
              |
              |    const { host, port } = await ctx.serve({
-             |        servedir: '$outdirEscaped',
+             |        servedir: '${outdir.toPath.toStringEscaped}',
              |        port: 8001
              |    });
              |
@@ -250,7 +249,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |              res.writeHead(200, {"Content-Type": "text/html"});
              |
              |              const meta = JSON.parse(fs.readFileSync(path.join(__dirname, 'sbt-scalajs-esbuild-serve-meta.json')));
-             |              res.write(htmlTransform(esbuildLiveReload(data), '$outdirEscaped', meta));
+             |              res.write(htmlTransform(esbuildLiveReload(data), '${outdir.toPath.toStringEscaped}', meta));
              |
              |              res.end();
              |            }

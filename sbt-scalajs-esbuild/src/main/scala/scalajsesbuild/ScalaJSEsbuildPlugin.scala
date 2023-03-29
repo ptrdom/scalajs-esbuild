@@ -181,7 +181,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         val targetDir = (esbuildInstall / crossTarget).value
         val stageTaskReport = stageTask.value.data
         val outdir =
-          (stageTask / esbuildBundle / crossTarget).value.absolutePath
+          (stageTask / esbuildBundle / crossTarget).value
         generateEsbuildBundleScript(
           targetDir,
           outdir,

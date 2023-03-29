@@ -79,20 +79,18 @@ package object scalajsesbuild {
   }
 
   private[scalajsesbuild] def esbuildOptions(
-      entryPoints: Seq[String],
-      outdir: String,
+      entryPoints: Seq[File],
+      outdir: File,
       hashOutputFiles: Boolean,
       minify: Boolean,
       spaces: Int
   ) = {
-    val entryPointsFn: Seq[String] => String = _.map(escapePathString)
-      .mkString(",")
-    val outdirFn: String => String = escapePathString
-
     Seq(
-      s"""|entryPoints: [${entryPointsFn(entryPoints)}],
+      s"""|entryPoints: ${entryPoints
+           .map(_.toPath.toStringEscaped)
+           .toJsArrayString},
          |bundle: true,
-         |outdir: '${outdirFn(outdir)}',
+         |outdir: '${outdir.toPath.toStringEscaped}',
          |loader: { $esbuildLoaders },
          |metafile: true,
          |logOverride: {
@@ -111,8 +109,19 @@ package object scalajsesbuild {
       .mkString("\n")
   }
 
-  private[scalajsesbuild] def escapePathString(pathString: String) =
-    pathString.replace("\\", "\\\\")
+  implicit private[scalajsesbuild] class SeqOps[T](seq: Seq[T]) {
+    def toJsArrayString: String = {
+      seq
+        .map("'" + _ + "'")
+        .mkString("[", ", ", "]")
+    }
+  }
+
+  implicit private[scalajsesbuild] class PathOps(path: Path) {
+    def toStringEscaped = {
+      path.toString.replace("\\", "\\\\")
+    }
+  }
 
   private[scalajsesbuild] def processFileChanges(
       fileChanges: FileChanges,
@@ -162,15 +171,14 @@ package object scalajsesbuild {
 
   private[scalajsesbuild] def generateEsbuildBundleScript(
       targetDir: File,
-      outdir: String,
+      outdir: File,
       stageTaskReport: Report,
       hashOutputFiles: Boolean,
       htmlEntryPoints: Seq[Path]
   ) = {
     val entryPoints = jsFileNames(stageTaskReport)
-      .map(jsFileName => s"'${(targetDir / jsFileName).absolutePath}'")
+      .map(targetDir / _)
       .toSeq
-    val outdirEscaped = escapePathString(outdir)
 
     // language=JS
     s"""
@@ -200,23 +208,20 @@ package object scalajsesbuild {
        |
        |  fs.writeFileSync('sbt-scalajs-esbuild-bundle-meta.json', JSON.stringify(result.metafile));
        |
-       |  const htmlEntryPoints = [
-       |    ${htmlEntryPoints
+       |  const htmlEntryPoints = ${htmlEntryPoints
         .map(htmlEntryPoint =>
-          escapePathString(
-            Path.of(targetDir.absolutePath, htmlEntryPoint.toString).toString
-          )
+          Path
+            .of(targetDir.absolutePath, htmlEntryPoint.toString)
+            .toStringEscaped
         )
-        .map("'" + _ + "'")
-        .mkString(", ")}
-       |  ];
+        .toJsArrayString};
        |
        |  htmlEntryPoints
        |    .forEach((htmlEntryPoint) => {
        |      const html = fs.readFileSync(htmlEntryPoint);
-       |      const transformedHtml = htmlTransform(html, '$outdirEscaped', result.metafile);
+       |      const transformedHtml = htmlTransform(html, '${outdir.toPath.toStringEscaped}', result.metafile);
        |      const relativePath = path.relative(__dirname, htmlEntryPoint);
-       |      fs.writeFileSync(path.join('$outdirEscaped', relativePath), transformedHtml);
+       |      fs.writeFileSync(path.join('${outdir.toPath.toStringEscaped}', relativePath), transformedHtml);
        |    });
        |}
        |
