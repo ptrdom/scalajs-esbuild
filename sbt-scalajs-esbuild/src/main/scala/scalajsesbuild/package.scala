@@ -203,7 +203,9 @@ package object scalajsesbuild {
        |  const htmlEntryPoints = [
        |    ${htmlEntryPoints
         .map(htmlEntryPoint =>
-          Path.of(targetDir.absolutePath, htmlEntryPoint.toString)
+          escapePathString(
+            Path.of(targetDir.absolutePath, htmlEntryPoint.toString).toString
+          )
         )
         .map("'" + _ + "'")
         .mkString(", ")}
