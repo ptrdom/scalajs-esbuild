@@ -20,7 +20,7 @@ inThisBuild(
 
 lazy val `scalajs-esbuild` = (project in file("."))
   .settings(publish / skip := true)
-  .aggregate(`sbt-scalajs-esbuild`)
+  .aggregate(`sbt-scalajs-esbuild`, `sbt-scalajs-esbuild-web`)
 
 lazy val commonSettings = Seq(
   scriptedLaunchOpts ++= Seq(
@@ -37,3 +37,29 @@ lazy val `sbt-scalajs-esbuild` =
     .settings(
       addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.10.1")
     )
+
+lazy val `sbt-scalajs-esbuild-web` = project
+  .in(file("sbt-scalajs-esbuild-web"))
+  .enablePlugins(SbtPlugin, ShadingPlugin)
+  .settings(
+    commonSettings,
+    libraryDependencies += "org.typelevel" %% "jawn-ast" % "1.4.0",
+    shadedModules ++= Set(
+      "org.typelevel" %% "jawn-ast",
+      "org.typelevel" %% "jawn-parser",
+      "org.typelevel" %% "jawn-util"
+    ),
+    shadingRules ++= Seq(
+      ShadingRule
+        .moveUnder(
+          "org.typelevel.jawn",
+          "scalajsesbuild.shaded.org.typelevel.jawn"
+        )
+    ),
+    validNamespaces ++= Set("scalajsesbuild", "sbt"),
+    scriptedDependencies := {
+      val () = scriptedDependencies.value
+      val () = (`sbt-scalajs-esbuild` / publishLocal).value
+    }
+  )
+  .dependsOn(`sbt-scalajs-esbuild`)

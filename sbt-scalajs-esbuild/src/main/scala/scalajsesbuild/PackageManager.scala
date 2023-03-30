@@ -13,10 +13,8 @@ trait PackageManager {
   def installCommand: String
   def install(logger: Logger)(directory: File): Unit = {
     val exitValue = Process(
-      (sys.props("os.name").toLowerCase match {
-        case os if os.contains("win") => "cmd" :: "/c" :: Nil
-        case _                        => Nil
-      }) ::: name :: Nil ::: installCommand :: Nil,
+      (if (isWindows) "cmd" :: "/c" :: Nil
+       else Nil) ::: name :: Nil ::: installCommand :: Nil,
       directory
     ).run(logger).exitValue()
     if (exitValue != 0) {
