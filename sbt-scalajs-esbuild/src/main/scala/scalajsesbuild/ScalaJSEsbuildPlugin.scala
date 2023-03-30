@@ -1,6 +1,8 @@
 package scalajsesbuild
 
 import java.nio.file.Path
+
+import org.apache.ivy.util.FileUtil
 import org.scalajs.jsenv.Input.Script
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.ModuleKind
@@ -61,7 +63,17 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
     },
     esbuildRunner := EsbuildRunner.Default,
     esbuildResourcesDirectory := baseDirectory.value / "esbuild",
-    esbuildPackageManager := PackageManager.Npm
+    esbuildPackageManager := PackageManager.Npm,
+    clean := {
+      clean.value
+
+      // there is an issue with cleaning when it comes to fileInputs, observed on Windows, so do manual cleaning
+      if (isWindows) {
+        FileUtil.forceDelete(
+          target.value / "streams" / "compile" / "_global" / "esbuildCopyResources"
+        )
+      }
+    }
   ) ++
     inConfig(Compile)(perConfigSettings) ++
     inConfig(Test)(perConfigSettings)

@@ -4,14 +4,14 @@ import org.scalajs.linker.interface.unstable
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fastLinkJS
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fullLinkJS
 import sbt._
-import sbt.Keys.crossTarget
 import sbt.sbtOptionSyntaxOptionIdOps
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFastLinkJSWrapper
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFullLinkJSWrapper
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
 
 package object scalajsesbuild {
+
+  private[scalajsesbuild] val isWindows =
+    sys.props("os.name").toLowerCase.contains("win")
 
   private[scalajsesbuild] implicit class ScalaJSStageOps(
       stage: org.scalajs.sbtplugin.Stage
