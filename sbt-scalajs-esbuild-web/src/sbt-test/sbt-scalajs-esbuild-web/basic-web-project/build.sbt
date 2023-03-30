@@ -22,6 +22,3 @@ lazy val perConfigSettings = Seq(
 )
 inConfig(Compile)(perConfigSettings)
 inConfig(Test)(perConfigSettings)
-
-//TODO setup production bundling with hashes, consider altering esbuildBundle for it
-//TODO setup injection of scripts for both serve and production bundling
