@@ -86,8 +86,6 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
   private def perScalaJSStageSettings(stage: Stage): Seq[Setting[_]] = {
     val stageTask = stage.stageTask
 
-    // TODO deal with entry points when bundling
-
     Seq(
       stageTask / esbuildBundleHtmlEntryPoints := Seq(
         Path.of("index.html")
