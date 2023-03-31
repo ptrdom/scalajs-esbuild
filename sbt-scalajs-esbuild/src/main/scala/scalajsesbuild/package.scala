@@ -81,6 +81,7 @@ package object scalajsesbuild {
   private[scalajsesbuild] def esbuildOptions(
       entryPoints: Seq[File],
       outdir: File,
+      outputFilesDirectory: Option[String],
       hashOutputFiles: Boolean,
       minify: Boolean,
       spaces: Int
@@ -96,13 +97,19 @@ package object scalajsesbuild {
          |logOverride: {
          |  'equals-negative-zero': 'silent',
          |},
-         |logLevel: "info",""".stripMargin.some,
-      if (hashOutputFiles) {
-        """entryNames: '[name]-[hash]',
-          |assetNames: '[name]-[hash]',""".stripMargin.some
-      } else None,
+         |logLevel: "info",
+         |entryNames: '${outputFilesDirectory
+           .map(_ + "/")
+           .getOrElse("")}[name]${if (hashOutputFiles) "-[hash]" else ""}',
+         |assetNames: '${outputFilesDirectory
+           .map(_ + "/")
+           .getOrElse("")}[name]${if (hashOutputFiles) "-[hash]"
+         else ""}',""".stripMargin.some,
       if (minify) {
-        "minify: true".some
+        "minify: true,".some
+      } else None,
+      if (outputFilesDirectory.nonEmpty) {
+        """publicPath: "/",""".some
       } else None
     ).flatten.mkString.linesIterator
       .map((" " * spaces) + _)
@@ -173,6 +180,7 @@ package object scalajsesbuild {
       targetDir: File,
       outdir: File,
       stageTaskReport: Report,
+      outputFilesDirectory: Option[String],
       hashOutputFiles: Boolean,
       htmlEntryPoints: Seq[Path]
   ) = {
@@ -198,8 +206,9 @@ package object scalajsesbuild {
        |const bundle = async () => {
        |  const result = await esbuild.build({
        |${esbuildOptions(
-        entryPoints,
-        outdir,
+        entryPoints = entryPoints,
+        outdir = outdir,
+        outputFilesDirectory = outputFilesDirectory,
         hashOutputFiles = hashOutputFiles,
         minify = true,
         spaces = 4
@@ -234,6 +243,8 @@ package object scalajsesbuild {
     s"""const htmlTransform = (htmlString, outDirectory, meta) => {
       |  const workingDirectory = __dirname;
       |
+      |  const toHtmlPath = (filePath) => filePath.split(path.sep).join(path.posix.sep);
+      |
       |  const dom = new JSDOM(htmlString);
       |  dom.window.document.querySelectorAll("script").forEach((el) => {
       |    let output;
@@ -249,11 +260,11 @@ package object scalajsesbuild {
       |    })
       |    if (output) {
       |     let absolute = el.src.startsWith("/");
-      |     el.src = el.src.replace(output.entryPoint, path.relative(outDirectory, path.join(workingDirectory, outputBundle)));
+      |     el.src = toHtmlPath(el.src.replace(output.entryPoint, path.relative(outDirectory, path.join(workingDirectory, outputBundle))));
       |     if (output.cssBundle) {
       |       const link = dom.window.document.createElement("link");
       |       link.rel = "stylesheet";
-      |       link.href = (absolute ? "/" : "") + path.relative(outDirectory, path.join(workingDirectory, output.cssBundle));
+      |       link.href = (absolute ? "/" : "") + toHtmlPath(path.relative(outDirectory, path.join(workingDirectory, output.cssBundle)));
       |       el.parentNode.insertBefore(link, el.nextSibling);
       |     }
       |    }

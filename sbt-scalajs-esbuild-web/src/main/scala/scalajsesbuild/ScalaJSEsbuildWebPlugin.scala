@@ -101,11 +101,12 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
           "HTML entry point paths must be relative"
         )
         generateEsbuildBundleScript(
-          targetDir,
-          outdir,
-          stageTaskReport,
+          targetDir = targetDir,
+          outdir = outdir,
+          stageTaskReport = stageTaskReport,
+          outputFilesDirectory = Some("assets"),
           hashOutputFiles = true,
-          htmlEntryPoints
+          htmlEntryPoints = htmlEntryPoints
         )
       }
     ) ++ {
@@ -189,8 +190,9 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |
              |    const ctx  = await esbuild.context({
              |${esbuildOptions(
-              entryPoints,
-              outdir,
+              entryPoints = entryPoints,
+              outdir = outdir,
+              outputFilesDirectory = Some("assets"),
               hashOutputFiles = false,
               minify = false,
               spaces = 6

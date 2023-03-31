@@ -195,11 +195,12 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         val outdir =
           (stageTask / esbuildBundle / crossTarget).value
         generateEsbuildBundleScript(
-          targetDir,
-          outdir,
-          stageTaskReport,
+          targetDir = targetDir,
+          outdir = outdir,
+          stageTaskReport = stageTaskReport,
+          outputFilesDirectory = None,
           hashOutputFiles = false,
-          Seq.empty
+          htmlEntryPoints = Seq.empty
         )
       },
       stageTask / esbuildBundle := {
