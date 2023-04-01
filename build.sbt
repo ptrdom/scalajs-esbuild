@@ -20,7 +20,11 @@ inThisBuild(
 
 lazy val `scalajs-esbuild` = (project in file("."))
   .settings(publish / skip := true)
-  .aggregate(`sbt-scalajs-esbuild`, `sbt-scalajs-esbuild-web`)
+  .aggregate(
+    `sbt-scalajs-esbuild`,
+    `sbt-scalajs-esbuild-web`,
+    `sbt-web-scalajs-esbuild`
+  )
 
 lazy val commonSettings = Seq(
   scriptedLaunchOpts ++= Seq(
@@ -63,3 +67,17 @@ lazy val `sbt-scalajs-esbuild-web` = project
     }
   )
   .dependsOn(`sbt-scalajs-esbuild`)
+
+lazy val `sbt-web-scalajs-esbuild` =
+  project
+    .in(file("sbt-web-scalajs-esbuild"))
+    .enablePlugins(SbtPlugin)
+    .settings(commonSettings)
+    .settings(
+      addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.1.0"),
+      scriptedDependencies := {
+        val () = scriptedDependencies.value
+        val () = (`sbt-scalajs-esbuild-web` / publishLocal).value
+      }
+    )
+    .dependsOn(`sbt-scalajs-esbuild-web`)
