@@ -12,7 +12,7 @@ class MainSpec extends AnyWordSpec with Matchers {
 
       document
         .querySelector("h1")
-        .textContent shouldEqual "BASIC-DOM-PROJECT WORKS!"
+        .textContent shouldEqual "BASIC-WEB-PROJECT WORKS!"
     }
   }
 }

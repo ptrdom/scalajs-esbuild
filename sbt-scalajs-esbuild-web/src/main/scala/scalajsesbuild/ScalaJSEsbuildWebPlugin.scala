@@ -209,6 +209,8 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |
              |    // Create a second (proxy) server that will forward requests to esbuild.
              |    const proxy = http.createServer((req, res) => {
+             |        const meta = JSON.parse(fs.readFileSync(path.join(__dirname, 'sbt-scalajs-esbuild-serve-meta.json')));
+             |
              |        // forwardRequest forwards an http request through to esbuid.
              |        const forwardRequest = (path) => {
              |            const options = {
@@ -219,6 +221,24 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |                headers: req.headers,
              |            };
              |
+             |        if (path === "/" || path.endsWith(".html")) {
+             |          let file;
+             |          if (path === "/") {
+             |            file = "/index.html";
+             |          } else {
+             |            file = path;
+             |          }
+             |
+             |          const htmlFilePath = "."+file;
+             |
+             |          if (fs.existsSync(htmlFilePath)) {
+             |            res.writeHead(200, {"Content-Type": "text/html"});
+             |            res.end(htmlTransform(esbuildLiveReload(fs.readFileSync(htmlFilePath)), '${outdir.toPath.toStringEscaped}', meta));
+             |          } else {
+             |            res.writeHead(404);
+             |            res.end('HTML file ['+htmlFilePath+'] not found');
+             |          }
+             |        } else {
              |            const proxyReq = http.request(options, (proxyRes) => {
              |                if (proxyRes.statusCode === 404) {
              |                    // If esbuild 404s the request, assume it's a route needing to
@@ -232,32 +252,11 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |            });
              |
              |            req.pipe(proxyReq, { end: true });
-             |        };
-             |
-             |        if (req.url === "/" || req.url.endsWith(".html")) {
-             |          let file;
-             |          if (req.url === "/") {
-             |            file = "/index.html";
-             |          } else {
-             |            file = req.url;
-             |          }
-             |
-             |          fs.readFile("."+file, function (err, data) {
-             |            if (err) {
-             |              throw err;
-             |            } else {
-             |              res.writeHead(200, {"Content-Type": "text/html"});
-             |
-             |              const meta = JSON.parse(fs.readFileSync(path.join(__dirname, 'sbt-scalajs-esbuild-serve-meta.json')));
-             |              res.write(htmlTransform(esbuildLiveReload(data), '${outdir.toPath.toStringEscaped}', meta));
-             |
-             |              res.end();
-             |            }
-             |          });
-             |        } else {
-             |          // When we're called pass the request right through to esbuild.
-             |          forwardRequest(req.url);
              |        }
+             |      };
+             |
+             |        // When we're called pass the request right through to esbuild.
+             |        forwardRequest(req.url);
              |    });
              |
              |    // Start our proxy server at the specified `listen` port.

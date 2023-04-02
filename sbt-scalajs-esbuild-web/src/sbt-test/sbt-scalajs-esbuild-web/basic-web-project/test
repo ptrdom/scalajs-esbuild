@@ -12,7 +12,7 @@ $ exists esbuild/package-lock.json
 $ delete esbuild/package-lock.json
 > clean
 > fastLinkJS/esbuildServeStart
-# TODO html test
+> html 8000
 > fastLinkJS/esbuildServeStop
 $ exists esbuild/package-lock.json
 
@@ -31,6 +31,6 @@ $ exists esbuild/package-lock.json
 $ delete esbuild/package-lock.json
 > clean
 > fullLinkJS/esbuildServeStart
-# TODO html test
+> html 8000
 > fullLinkJS/esbuildServeStop
 $ exists esbuild/package-lock.json
