@@ -1,0 +1,22 @@
+name: Release
+on:
+  push:
+    branches: [main]
+    tags: ["*"]
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3.0.2
+        with:
+          fetch-depth: 0
+      - uses: coursier/cache-action@v5
+      - uses: coursier/setup-action@v1
+        with:
+          jvm: adopt:11
+      - run: sbt ci-release
+        env:
+          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+          PGP_SECRET: ${{ secrets.PGP_SECRET }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
