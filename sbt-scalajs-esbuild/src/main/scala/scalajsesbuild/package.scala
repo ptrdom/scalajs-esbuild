@@ -111,7 +111,9 @@ package object scalajsesbuild {
       if (outputFilesDirectory.nonEmpty) {
         """publicPath: "/",""".some
       } else None
-    ).flatten.mkString.linesIterator
+    ).flatten
+      .mkString("\n")
+      .linesIterator
       .map((" " * spaces) + _)
       .mkString("\n")
   }

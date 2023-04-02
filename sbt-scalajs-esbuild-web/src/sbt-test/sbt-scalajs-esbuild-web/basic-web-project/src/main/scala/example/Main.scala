@@ -40,6 +40,6 @@ object Main {
   }
 
   def testString(): String = {
-    Lodash.toUpper("basic-dom-project works!")
+    Lodash.toUpper("basic-web-project works!")
   }
 }
