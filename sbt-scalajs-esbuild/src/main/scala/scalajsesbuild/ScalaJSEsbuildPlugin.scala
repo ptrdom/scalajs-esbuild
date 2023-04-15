@@ -79,7 +79,6 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
     inConfig(Test)(perConfigSettings)
 
   private lazy val perConfigSettings: Seq[Setting[_]] = Seq(
-    unmanagedSourceDirectories += esbuildResourcesDirectory.value,
     esbuildInstall / crossTarget := {
       crossTarget.value /
         "esbuild" /
@@ -208,10 +207,10 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
 
         val fileChanges = (stageTask / esbuildCompile).value
         val bundlingScript = (stageTask / esbuildBundleScript).value
+        val targetDir = (esbuildInstall / crossTarget).value
+        val outDir = (stageTask / esbuildBundle / crossTarget).value
 
-        if (fileChanges.hasChanges) {
-          val targetDir = (esbuildInstall / crossTarget).value
-
+        if (fileChanges.hasChanges || !outDir.exists()) {
           val scriptFileName = "sbt-scalajs-esbuild-bundle-script.cjs"
           IO.write(targetDir / scriptFileName, bundlingScript)
 
