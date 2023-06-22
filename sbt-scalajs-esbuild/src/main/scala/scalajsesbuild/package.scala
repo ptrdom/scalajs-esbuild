@@ -104,7 +104,8 @@ package object scalajsesbuild {
          |assetNames: '${outputFilesDirectory
            .map(_ + "/")
            .getOrElse("")}[name]${if (hashOutputFiles) "-[hash]"
-         else ""}',""".stripMargin.some,
+         else ""}',
+         |sourcemap: true,""".stripMargin.some,
       if (minify) {
         "minify: true,".some
       } else None,
