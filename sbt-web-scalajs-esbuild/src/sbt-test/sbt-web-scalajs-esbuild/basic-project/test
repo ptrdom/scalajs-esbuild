@@ -1,18 +1,12 @@
 # npm
 
 $ absent client/esbuild/package-lock.json
-> clean
-> set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
-> server/bgRun
-> html 8080
+> clean; set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt; server/bgRun; html 8080
 $ exists client/esbuild/package-lock.json
 -> exit
 
 $ delete client/esbuild/package-lock.json
-> clean
-> set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt
-> server/bgRun
-> html 8080
+> clean; set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt; server/bgRun; html 8080
 $ exists client/esbuild/package-lock.json
 -> exit
 
@@ -21,20 +15,12 @@ $ delete client/esbuild/package-lock.json
 # pnpm
 
 $ absent client/esbuild/pnpm-lock.yaml
-> set client/esbuildPackageManager := new scalajsesbuild.PackageManager { override def name = "pnpm"; override def lockFile = "pnpm-lock.yaml"; override def installCommand = "install";  }
-> clean
-> set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
-> server/bgRun
-> html 8080
+> set client/esbuildPackageManager := new scalajsesbuild.PackageManager { override def name = "pnpm"; override def lockFile = "pnpm-lock.yaml"; override def installCommand = "install";  }; clean; set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt; server/bgRun; html 8080
 $ exists client/esbuild/pnpm-lock.yaml
 -> exit
 
 $ delete client/esbuild/pnpm-lock.yaml
-> set client/esbuildPackageManager := new scalajsesbuild.PackageManager { override def name = "pnpm"; override def lockFile = "pnpm-lock.yaml"; override def installCommand = "install";  }
-> clean
-> set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt
-> server/bgRun
-> html 8080
+> set client/esbuildPackageManager := new scalajsesbuild.PackageManager { override def name = "pnpm"; override def lockFile = "pnpm-lock.yaml"; override def installCommand = "install";  }; clean; set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt; server/bgRun; html 8080
 $ exists client/esbuild/pnpm-lock.yaml
 -> exit
 
@@ -43,19 +29,11 @@ $ delete client/esbuild/pnpm-lock.yaml
 # yarn
 
 $ absent client/esbuild/yarn.lock
-> set client/esbuildPackageManager := new scalajsesbuild.PackageManager { override def name = "yarn"; override def lockFile = "yarn.lock"; override def installCommand = "install";  }
-> clean
-> set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
-> server/bgRun
-> html 8080
+> set client/esbuildPackageManager := new scalajsesbuild.PackageManager { override def name = "yarn"; override def lockFile = "yarn.lock"; override def installCommand = "install";  }; clean; set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt; server/bgRun; html 8080
 $ exists client/esbuild/yarn.lock
 -> exit
 
 $ delete client/esbuild/yarn.lock
-> set client/esbuildPackageManager := new scalajsesbuild.PackageManager { override def name = "yarn"; override def lockFile = "yarn.lock"; override def installCommand = "install";  }
-> clean
-> set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt
-> server/bgRun
-> html 8080
+> set client/esbuildPackageManager := new scalajsesbuild.PackageManager { override def name = "yarn"; override def lockFile = "yarn.lock"; override def installCommand = "install";  }; clean; set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt; server/bgRun; html 8080
 $ exists client/esbuild/yarn.lock
 -> exit
