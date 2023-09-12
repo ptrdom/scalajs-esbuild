@@ -28,5 +28,8 @@ jobs:
         run: corepack prepare yarn@1.22.15 --activate
       - name: Setup pnpm
         run: corepack prepare pnpm@7.0.1 --activate
+      - name: Run sbt submodule
+        working-directory: ./sbt
+        run: sbt version
       - name: Run tests
         run: sbt scalafmtSbtCheck scalafmtCheckAll test scripted
