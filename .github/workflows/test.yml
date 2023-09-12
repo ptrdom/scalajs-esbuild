@@ -31,6 +31,6 @@ jobs:
         run: corepack prepare pnpm@7.0.1 --activate
       - name: Run sbt submodule
         working-directory: ./sbt
-        run: sbt version
+        run: sbt publishLocal
       - name: Run tests
         run: sbt scalafmtSbtCheck scalafmtCheckAll test scripted
