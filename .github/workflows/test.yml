@@ -14,7 +14,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-        submodules: true
+        with:
+          submodules: true
       - uses: coursier/cache-action@v6
       - uses: coursier/setup-action@v1
         with:
