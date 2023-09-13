@@ -1,4 +1,0 @@
-[submodule "sbt"]
-	path = sbt
-	url = https://github.com/ptrdom/sbt
-	branch = scripted-fix
