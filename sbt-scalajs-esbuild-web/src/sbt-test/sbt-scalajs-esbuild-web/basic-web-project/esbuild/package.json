@@ -7,7 +7,7 @@
     "lodash": "4.17.21"
   },
   "devDependencies": {
-    "esbuild": "0.17.5",
+    "esbuild": "0.19.2",
     "jsdom": "21.1.0"
   }
 }
