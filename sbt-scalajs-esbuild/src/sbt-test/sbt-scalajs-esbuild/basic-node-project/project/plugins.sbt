@@ -1,13 +1,18 @@
-val sourcePlugins = if (!sys.props.contains("plugin.source")) {
-  Seq.empty
-} else {
-  Seq(
-    ProjectRef(
-      file("../../../../../../"),
-      "sbt-scalajs-esbuild"
-    ): ClasspathDep[ProjectReference]
-  )
-}
+val sourcePlugins = sys.props
+  .get("plugin.version")
+  .map { version =>
+    println(s"Using plugin(s) version [${version}]")
+    Seq.empty
+  }
+  .getOrElse {
+    println("Building plugin(s) from source")
+    Seq(
+      ProjectRef(
+        file("../../../../../../"),
+        "sbt-scalajs-esbuild"
+      ): ClasspathDep[ProjectReference]
+    )
+  }
 
 lazy val root = (project in file("."))
   .dependsOn(sourcePlugins: _*)
