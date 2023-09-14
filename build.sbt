@@ -74,7 +74,7 @@ lazy val `sbt-web-scalajs-esbuild` =
     .enablePlugins(SbtPlugin)
     .settings(commonSettings)
     .settings(
-      addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.1.0"),
+      addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.2.0"),
       scriptedDependencies := {
         val () = scriptedDependencies.value
         val () = (`sbt-scalajs-esbuild-web` / publishLocal).value
