@@ -47,7 +47,7 @@ lazy val `sbt-scalajs-esbuild-web` = project
   .enablePlugins(SbtPlugin, ShadingPlugin)
   .settings(
     commonSettings,
-    libraryDependencies += "org.typelevel" %% "jawn-ast" % "1.4.0",
+    libraryDependencies += "org.typelevel" %% "jawn-ast" % "1.5.1",
     shadedModules ++= Set(
       "org.typelevel" %% "jawn-ast",
       "org.typelevel" %% "jawn-parser",
