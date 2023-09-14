@@ -209,7 +209,14 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |
              |    // Create a second (proxy) server that will forward requests to esbuild.
              |    const proxy = http.createServer((req, res) => {
-             |        const meta = JSON.parse(fs.readFileSync(path.join(__dirname, 'sbt-scalajs-esbuild-serve-meta.json')));
+             |        const metaPath = path.join(__dirname, 'sbt-scalajs-esbuild-serve-meta.json');
+             |        let meta;
+             |        try {
+             |          meta = JSON.parse(fs.readFileSync(metaPath));
+             |        } catch (error) {
+             |          res.writeHead(500);
+             |          res.end('META file ['+metaPath+'] not found');
+             |        }
              |
              |        // forwardRequest forwards an http request through to esbuid.
              |        const forwardRequest = (path) => {
