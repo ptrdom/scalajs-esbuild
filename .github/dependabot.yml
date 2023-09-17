@@ -1,0 +1,18 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "npm"
+    directory: "/sbt-scalajs-esbuild/src/sbt-test/sbt-scalajs-esbuild/basic-node-project/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "npm"
+    directory: "/sbt-scalajs-esbuild-web/src/sbt-test/sbt-scalajs-esbuild-web/basic-web-project/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "npm"
+    directory: "/sbt-web-scalajs-esbuild/src/sbt-test/sbt-web-scalajs-esbuild/basic-project/"
+    schedule:
+      interval: "daily"
