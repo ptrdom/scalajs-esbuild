@@ -243,6 +243,10 @@ package object scalajsesbuild {
   private[scalajsesbuild] val htmlTransformScript = {
     // language=JS
     s"""const htmlTransform = (htmlString, outDirectory, meta) => {
+      |  if (!meta.outputs) {
+      |    throw new Error('Meta file missing output metadata');
+      |  }
+      |
       |  const workingDirectory = __dirname;
       |
       |  const toHtmlPath = (filePath) => filePath.split(path.sep).join(path.posix.sep);
