@@ -13,6 +13,6 @@ updates:
     schedule:
       interval: "daily"
   - package-ecosystem: "npm"
-    directory: "/sbt-web-scalajs-esbuild/src/sbt-test/sbt-web-scalajs-esbuild/basic-project/esbuild/"
+    directory: "/sbt-web-scalajs-esbuild/src/sbt-test/sbt-web-scalajs-esbuild/basic-project/client/esbuild/"
     schedule:
       interval: "daily"
