@@ -239,8 +239,13 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |          const htmlFilePath = "."+file;
              |
              |          if (fs.existsSync(htmlFilePath)) {
-             |            res.writeHead(200, {"Content-Type": "text/html"});
-             |            res.end(htmlTransform(esbuildLiveReload(fs.readFileSync(htmlFilePath)), '${outdir.toPath.toStringEscaped}', meta));
+             |            try {
+             |              res.writeHead(200, {"Content-Type": "text/html"});
+             |              res.end(htmlTransform(esbuildLiveReload(fs.readFileSync(htmlFilePath)), '${outdir.toPath.toStringEscaped}', meta));
+             |            } catch (error) {
+             |              res.writeHead(500);
+             |              res.end('Failed to transform html ['+error+']');
+             |            }
              |          } else {
              |            res.writeHead(404);
              |            res.end('HTML file ['+htmlFilePath+'] not found');
