@@ -177,12 +177,12 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |    const plugins = [{
              |      name: 'metafile-plugin',
              |      setup(build) {
-             |        let count = 0;
              |        build.onEnd(result => {
-             |          if (count++ === 0) {
-             |            fs.writeFileSync('sbt-scalajs-esbuild-serve-meta.json', JSON.stringify(result.metafile));
+             |          const metafileName = 'sbt-scalajs-esbuild-serve-meta.json';
+             |          if (!result.metafile) {
+             |            fs.writeFileSync(metafileName, '{}');
              |          } else {
-             |            fs.writeFileSync('sbt-scalajs-esbuild-serve-meta.json', JSON.stringify(result.metafile));
+             |            fs.writeFileSync(metafileName, JSON.stringify(result.metafile));
              |          }
              |        });
              |      },
@@ -218,57 +218,58 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |          res.end('META file ['+metaPath+'] not found');
              |        }
              |
-             |        // forwardRequest forwards an http request through to esbuid.
-             |        const forwardRequest = (path) => {
-             |            const options = {
-             |                hostname: host,
-             |                port,
-             |                path,
-             |                method: req.method,
-             |                headers: req.headers,
-             |            };
+             |        if (meta) {
+             |          // forwardRequest forwards an http request through to esbuid.
+             |          const forwardRequest = (path) => {
+             |              const options = {
+             |                  hostname: host,
+             |                  port,
+             |                  path,
+             |                  method: req.method,
+             |                  headers: req.headers,
+             |              };
              |
-             |        if (path === "/" || path.endsWith(".html")) {
-             |          let file;
-             |          if (path === "/") {
-             |            file = "/index.html";
-             |          } else {
-             |            file = path;
-             |          }
+             |          if (path === "/" || path.endsWith(".html")) {
+             |            let file;
+             |            if (path === "/") {
+             |              file = "/index.html";
+             |            } else {
+             |              file = path;
+             |            }
              |
-             |          const htmlFilePath = "."+file;
+             |            const htmlFilePath = "."+file;
              |
-             |          if (fs.existsSync(htmlFilePath)) {
-             |            try {
-             |              res.writeHead(200, {"Content-Type": "text/html"});
-             |              res.end(htmlTransform(esbuildLiveReload(fs.readFileSync(htmlFilePath)), '${outdir.toPath.toStringEscaped}', meta));
-             |            } catch (error) {
-             |              res.writeHead(500);
-             |              res.end('Failed to transform html ['+error+']');
+             |            if (fs.existsSync(htmlFilePath)) {
+             |              try {
+             |                res.writeHead(200, {"Content-Type": "text/html"});
+             |                res.end(htmlTransform(esbuildLiveReload(fs.readFileSync(htmlFilePath)), '${outdir.toPath.toStringEscaped}', meta));
+             |              } catch (error) {
+             |                res.writeHead(500);
+             |                res.end('Failed to transform html ['+error+']');
+             |              }
+             |            } else {
+             |              res.writeHead(404);
+             |              res.end('HTML file ['+htmlFilePath+'] not found');
              |            }
              |          } else {
-             |            res.writeHead(404);
-             |            res.end('HTML file ['+htmlFilePath+'] not found');
-             |          }
-             |        } else {
              |            const proxyReq = http.request(options, (proxyRes) => {
-             |                if (proxyRes.statusCode === 404) {
-             |                    // If esbuild 404s the request, assume it's a route needing to
-             |                    // be handled by the JS bundle, so forward a second attempt to `/`.
-             |                    return forwardRequest("/");
-             |                }
+             |              if (proxyRes.statusCode === 404) {
+             |                // If esbuild 404s the request, assume it's a route needing to
+             |                // be handled by the JS bundle, so forward a second attempt to `/`.
+             |                return forwardRequest("/");
+             |              }
              |
-             |                // Otherwise esbuild handled it like a champ, so proxy the response back.
-             |                res.writeHead(proxyRes.statusCode, proxyRes.headers);
-             |                proxyRes.pipe(res, { end: true });
+             |              // Otherwise esbuild handled it like a champ, so proxy the response back.
+             |              res.writeHead(proxyRes.statusCode, proxyRes.headers);
+             |              proxyRes.pipe(res, { end: true });
              |            });
              |
              |            req.pipe(proxyReq, { end: true });
-             |        }
-             |      };
-             |
+             |          }
+             |        };
              |        // When we're called pass the request right through to esbuild.
              |        forwardRequest(req.url);
+             |      }
              |    });
              |
              |    // Start our proxy server at the specified `listen` port.
