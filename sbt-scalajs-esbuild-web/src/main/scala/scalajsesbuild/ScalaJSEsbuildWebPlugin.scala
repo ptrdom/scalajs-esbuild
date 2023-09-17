@@ -177,12 +177,12 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |    const plugins = [{
              |      name: 'metafile-plugin',
              |      setup(build) {
-             |        let count = 0;
              |        build.onEnd(result => {
-             |          if (count++ === 0) {
-             |            fs.writeFileSync('sbt-scalajs-esbuild-serve-meta.json', JSON.stringify(result.metafile));
+             |          const metafileName = 'sbt-scalajs-esbuild-serve-meta.json';
+             |          if (!result.metafile) {
+             |            fs.writeFileSync(metafileName, '{}');
              |          } else {
-             |            fs.writeFileSync('sbt-scalajs-esbuild-serve-meta.json', JSON.stringify(result.metafile));
+             |            fs.writeFileSync(metafileName, JSON.stringify(result.metafile));
              |          }
              |        });
              |      },
