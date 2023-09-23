@@ -1,0 +1,10 @@
+body {
+  background-color: deepskyblue;
+}
+
+#css-image {
+  height: 100px;
+  width: 100px;
+  background-image: url("./javascript.svg");
+  background-size: cover;
+}
