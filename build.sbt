@@ -104,6 +104,19 @@ lazy val `sbt-web-scalajs-esbuild` =
     )
     .dependsOn(`sbt-scalajs-esbuild-web`)
 
+lazy val `sbt-scalajs-esbuild-electron` =
+  project
+    .in(file("sbt-scalajs-esbuild-electron"))
+    .enablePlugins(SbtPlugin)
+    .settings(commonSettings)
+    .settings(
+      scriptedDependencies := {
+        val () = scriptedDependencies.value
+        val () = (`sbt-scalajs-esbuild-web` / publishLocal).value
+      }
+    )
+    .dependsOn(`sbt-scalajs-esbuild-web`)
+
 TaskKey[Unit]("scriptedSequentialPerModule") := {
   Def.taskDyn {
     val projects: Seq[ProjectReference] = `scalajs-esbuild`.aggregate
