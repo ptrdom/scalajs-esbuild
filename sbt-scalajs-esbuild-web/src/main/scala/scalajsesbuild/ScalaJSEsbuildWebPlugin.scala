@@ -130,6 +130,17 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
           val outdir =
             (stageTask / esbuildServeStart / crossTarget).value
 
+          val htmlEntryPoints = (stageTask / esbuildBundleHtmlEntryPoints).value
+
+          val rootPathScript = htmlEntryPoints.toList match {
+            case Nil =>
+              sys.error("Must provide at least one value in html entry point")
+            case List(single) =>
+              s"""file = '/${single.toString}';"""
+            case _ =>
+              s"""throw new Error('Multiple html entry points defined, unable to pick single root');"""
+          }
+
           // language=JS
           s"""
              |const http = require('http');
@@ -232,7 +243,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |          if (path === "/" || path.endsWith(".html")) {
              |            let file;
              |            if (path === "/") {
-             |              file = "/index.html";
+             |              $rootPathScript
              |            } else {
              |              file = path;
              |            }
