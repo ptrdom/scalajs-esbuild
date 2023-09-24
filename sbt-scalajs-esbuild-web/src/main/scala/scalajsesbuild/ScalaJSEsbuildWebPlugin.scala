@@ -38,7 +38,11 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
   import autoImport._
 
   override lazy val projectSettings: Seq[Setting[_]] =
-    inConfig(Compile)(perConfigSettings) ++
+    Seq(
+      esbuildBundleHtmlEntryPoints := Seq(
+        Path.of("index.html")
+      )
+    ) ++ inConfig(Compile)(perConfigSettings) ++
       inConfig(Test)(perConfigSettings)
 
   private lazy val perConfigSettings: Seq[Setting[_]] = Seq(
@@ -87,15 +91,12 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
     val stageTask = stage.stageTask
 
     Seq(
-      stageTask / esbuildBundleHtmlEntryPoints := Seq(
-        Path.of("index.html")
-      ),
       stageTask / esbuildBundleScript := {
         val targetDir = (esbuildInstall / crossTarget).value
         val stageTaskReport = stageTask.value.data
         val outdir =
           (stageTask / esbuildBundle / crossTarget).value
-        val htmlEntryPoints = (stageTask / esbuildBundleHtmlEntryPoints).value
+        val htmlEntryPoints = esbuildBundleHtmlEntryPoints.value
         require(
           !htmlEntryPoints.forall(_.isAbsolute),
           "HTML entry point paths must be relative"
@@ -130,7 +131,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
           val outdir =
             (stageTask / esbuildServeStart / crossTarget).value
 
-          val htmlEntryPoints = (stageTask / esbuildBundleHtmlEntryPoints).value
+          val htmlEntryPoints = esbuildBundleHtmlEntryPoints.value
 
           val rootPathScript = htmlEntryPoints.toList match {
             case Nil =>
