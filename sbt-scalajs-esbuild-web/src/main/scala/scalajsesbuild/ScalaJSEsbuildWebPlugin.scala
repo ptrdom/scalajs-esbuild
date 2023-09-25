@@ -133,15 +133,6 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
 
           val htmlEntryPoints = esbuildBundleHtmlEntryPoints.value
 
-          val rootPathScript = htmlEntryPoints.toList match {
-            case Nil =>
-              sys.error("Must provide at least one value in html entry point")
-            case List(single) =>
-              s"""file = '/${single.toString}';"""
-            case _ =>
-              s"""throw new Error('Multiple html entry points defined, unable to pick single root');"""
-          }
-
           // language=JS
           s"""
              |const http = require('http');
@@ -241,42 +232,49 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |                  headers: req.headers,
              |              };
              |
-             |          if (path === "/" || path.endsWith(".html")) {
-             |            let file;
-             |            if (path === "/") {
-             |              $rootPathScript
-             |            } else {
-             |              file = path;
-             |            }
+             |          const multipleEntryPointsFound = ${htmlEntryPoints.size > 1};
              |
-             |            const htmlFilePath = "."+file;
-             |
-             |            if (fs.existsSync(htmlFilePath)) {
-             |              try {
-             |                res.writeHead(200, {"Content-Type": "text/html"});
-             |                res.end(htmlTransform(esbuildLiveReload(fs.readFileSync(htmlFilePath)), '${outdir.toPath.toStringEscaped}', meta));
-             |              } catch (error) {
-             |                res.writeHead(500);
-             |                res.end('Failed to transform html ['+error+']');
-             |              }
-             |            } else {
-             |              res.writeHead(404);
-             |              res.end('HTML file ['+htmlFilePath+'] not found');
-             |            }
+             |          if (multipleEntryPointsFound && path === "/") {
+             |            res.writeHead(500);
+             |            res.end('Multiple html entry points defined, unable to pick single root');
              |          } else {
-             |            const proxyReq = http.request(options, (proxyRes) => {
-             |              if (proxyRes.statusCode === 404) {
-             |                // If esbuild 404s the request, assume it's a route needing to
-             |                // be handled by the JS bundle, so forward a second attempt to `/`.
-             |                return forwardRequest("/");
+             |            if (path === "/" || path.endsWith(".html")) {
+             |              let file;
+             |              if (path === "/") {
+             |                file = '/${htmlEntryPoints.head}';
+             |              } else {
+             |                file = path;
              |              }
              |
-             |              // Otherwise esbuild handled it like a champ, so proxy the response back.
-             |              res.writeHead(proxyRes.statusCode, proxyRes.headers);
-             |              proxyRes.pipe(res, { end: true });
-             |            });
+             |              const htmlFilePath = "."+file;
              |
-             |            req.pipe(proxyReq, { end: true });
+             |              if (fs.existsSync(htmlFilePath)) {
+             |                try {
+             |                  res.writeHead(200, {"Content-Type": "text/html"});
+             |                  res.end(htmlTransform(esbuildLiveReload(fs.readFileSync(htmlFilePath)), '${outdir.toPath.toStringEscaped}', meta));
+             |                } catch (error) {
+             |                  res.writeHead(500);
+             |                  res.end('Failed to transform html ['+error+']');
+             |                }
+             |              } else {
+             |                res.writeHead(404);
+             |                res.end('HTML file ['+htmlFilePath+'] not found');
+             |              }
+             |            } else {
+             |              const proxyReq = http.request(options, (proxyRes) => {
+             |                if (proxyRes.statusCode === 404 && !multipleEntryPointsFound) {
+             |                  // If esbuild 404s the request, assume it's a route needing to
+             |                  // be handled by the JS bundle, so forward a second attempt to `/`.
+             |                  return forwardRequest("/");
+             |                }
+             |
+             |                // Otherwise esbuild handled it like a champ, so proxy the response back.
+             |                res.writeHead(proxyRes.statusCode, proxyRes.headers);
+             |                proxyRes.pipe(res, { end: true });
+             |              });
+             |
+             |              req.pipe(proxyReq, { end: true });
+             |            }
              |          }
              |        };
              |        // When we're called pass the request right through to esbuild.

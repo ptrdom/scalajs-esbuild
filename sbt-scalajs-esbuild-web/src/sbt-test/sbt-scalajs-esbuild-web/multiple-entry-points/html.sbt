@@ -43,21 +43,28 @@ InputKey[Unit]("html") := {
   }
 
   eventually {
-    find(tagName("h1")).head.text shouldBe "BASIC-WEB-PROJECT WORKS!"
+    find(
+      tagName("pre")
+    ).head.text shouldBe "Multiple html entry points defined, unable to pick single root"
   }
 
-  // should return index instead of 404
+  go to s"http://localhost:$port/index1.html"
+
+  eventually {
+    find(tagName("h1")).head.text shouldBe "MULTIPLE-ENTRY-POINTS MAIN1 WORKS!"
+  }
+
+  go to s"http://localhost:$port/index2.html"
+
+  eventually {
+    find(tagName("h1")).head.text shouldBe "MULTIPLE-ENTRY-POINTS MAIN2 WORKS!"
+  }
+
+  // do not redirect 404s to index if there are multiple html entry points
   go to s"http://localhost:$port/any"
 
   eventually {
-    find(tagName("h1")).head.text shouldBe "BASIC-WEB-PROJECT WORKS!"
-  }
-
-  // should return 404 for html URLs if html file does not exist
-  go to s"http://localhost:$port/any.html"
-
-  eventually {
-    find(tagName("pre")).head.text shouldBe "HTML file [./any.html] not found"
+    find(tagName("pre")).head.text shouldBe "404 - Not Found"
   }
 
   ()
