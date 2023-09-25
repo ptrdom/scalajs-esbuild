@@ -38,7 +38,11 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
   import autoImport._
 
   override lazy val projectSettings: Seq[Setting[_]] =
-    inConfig(Compile)(perConfigSettings) ++
+    Seq(
+      esbuildBundleHtmlEntryPoints := Seq(
+        Path.of("index.html")
+      )
+    ) ++ inConfig(Compile)(perConfigSettings) ++
       inConfig(Test)(perConfigSettings)
 
   private lazy val perConfigSettings: Seq[Setting[_]] = Seq(
@@ -87,15 +91,12 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
     val stageTask = stage.stageTask
 
     Seq(
-      stageTask / esbuildBundleHtmlEntryPoints := Seq(
-        Path.of("index.html")
-      ),
       stageTask / esbuildBundleScript := {
         val targetDir = (esbuildInstall / crossTarget).value
         val stageTaskReport = stageTask.value.data
         val outdir =
           (stageTask / esbuildBundle / crossTarget).value
-        val htmlEntryPoints = (stageTask / esbuildBundleHtmlEntryPoints).value
+        val htmlEntryPoints = esbuildBundleHtmlEntryPoints.value
         require(
           !htmlEntryPoints.forall(_.isAbsolute),
           "HTML entry point paths must be relative"
@@ -129,6 +130,8 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
             .toSeq
           val outdir =
             (stageTask / esbuildServeStart / crossTarget).value
+
+          val htmlEntryPoints = esbuildBundleHtmlEntryPoints.value
 
           // language=JS
           s"""
@@ -229,42 +232,49 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |                  headers: req.headers,
              |              };
              |
-             |          if (path === "/" || path.endsWith(".html")) {
-             |            let file;
-             |            if (path === "/") {
-             |              file = "/index.html";
-             |            } else {
-             |              file = path;
-             |            }
+             |          const multipleEntryPointsFound = ${htmlEntryPoints.size > 1};
              |
-             |            const htmlFilePath = "."+file;
-             |
-             |            if (fs.existsSync(htmlFilePath)) {
-             |              try {
-             |                res.writeHead(200, {"Content-Type": "text/html"});
-             |                res.end(htmlTransform(esbuildLiveReload(fs.readFileSync(htmlFilePath)), '${outdir.toPath.toStringEscaped}', meta));
-             |              } catch (error) {
-             |                res.writeHead(500);
-             |                res.end('Failed to transform html ['+error+']');
-             |              }
-             |            } else {
-             |              res.writeHead(404);
-             |              res.end('HTML file ['+htmlFilePath+'] not found');
-             |            }
+             |          if (multipleEntryPointsFound && path === "/") {
+             |            res.writeHead(500);
+             |            res.end('Multiple html entry points defined, unable to pick single root');
              |          } else {
-             |            const proxyReq = http.request(options, (proxyRes) => {
-             |              if (proxyRes.statusCode === 404) {
-             |                // If esbuild 404s the request, assume it's a route needing to
-             |                // be handled by the JS bundle, so forward a second attempt to `/`.
-             |                return forwardRequest("/");
+             |            if (path === "/" || path.endsWith(".html")) {
+             |              let file;
+             |              if (path === "/") {
+             |                file = '/${htmlEntryPoints.head}';
+             |              } else {
+             |                file = path;
              |              }
              |
-             |              // Otherwise esbuild handled it like a champ, so proxy the response back.
-             |              res.writeHead(proxyRes.statusCode, proxyRes.headers);
-             |              proxyRes.pipe(res, { end: true });
-             |            });
+             |              const htmlFilePath = "."+file;
              |
-             |            req.pipe(proxyReq, { end: true });
+             |              if (fs.existsSync(htmlFilePath)) {
+             |                try {
+             |                  res.writeHead(200, {"Content-Type": "text/html"});
+             |                  res.end(htmlTransform(esbuildLiveReload(fs.readFileSync(htmlFilePath)), '${outdir.toPath.toStringEscaped}', meta));
+             |                } catch (error) {
+             |                  res.writeHead(500);
+             |                  res.end('Failed to transform html ['+error+']');
+             |                }
+             |              } else {
+             |                res.writeHead(404);
+             |                res.end('HTML file ['+htmlFilePath+'] not found');
+             |              }
+             |            } else {
+             |              const proxyReq = http.request(options, (proxyRes) => {
+             |                if (proxyRes.statusCode === 404 && !multipleEntryPointsFound) {
+             |                  // If esbuild 404s the request, assume it's a route needing to
+             |                  // be handled by the JS bundle, so forward a second attempt to `/`.
+             |                  return forwardRequest("/");
+             |                }
+             |
+             |                // Otherwise esbuild handled it like a champ, so proxy the response back.
+             |                res.writeHead(proxyRes.statusCode, proxyRes.headers);
+             |                proxyRes.pipe(res, { end: true });
+             |              });
+             |
+             |              req.pipe(proxyReq, { end: true });
+             |            }
              |          }
              |        };
              |        // When we're called pass the request right through to esbuild.
