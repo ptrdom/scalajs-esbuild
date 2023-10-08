@@ -1,3 +1,5 @@
+import scala.util.control.NonFatal
+
 InputKey[Unit]("html") := {
   import org.openqa.selenium.WebDriver
   import org.openqa.selenium.chrome.ChromeDriver
@@ -38,33 +40,43 @@ InputKey[Unit]("html") := {
   }
   import webBrowser._
 
-  eventually {
-    go to s"http://localhost:$port"
-  }
+  try {
+    eventually {
+      go to s"http://localhost:$port"
+    }
 
-  eventually {
-    find(
-      tagName("pre")
-    ).head.text shouldBe "Multiple html entry points defined, unable to pick single root"
-  }
+    eventually {
+      find(
+        tagName("pre")
+      ).head.text shouldBe "Multiple html entry points defined, unable to pick single root"
+    }
 
-  go to s"http://localhost:$port/index1.html"
+    go to s"http://localhost:$port/index1.html"
 
-  eventually {
-    find(tagName("h1")).head.text shouldBe "MULTIPLE-ENTRY-POINTS MAIN1 WORKS!"
-  }
+    eventually {
+      find(
+        tagName("h1")
+      ).head.text shouldBe "MULTIPLE-ENTRY-POINTS MAIN1 WORKS!"
+    }
 
-  go to s"http://localhost:$port/index2.html"
+    go to s"http://localhost:$port/index2.html"
 
-  eventually {
-    find(tagName("h1")).head.text shouldBe "MULTIPLE-ENTRY-POINTS MAIN2 WORKS!"
-  }
+    eventually {
+      find(
+        tagName("h1")
+      ).head.text shouldBe "MULTIPLE-ENTRY-POINTS MAIN2 WORKS!"
+    }
 
-  // do not redirect 404s to index if there are multiple html entry points
-  go to s"http://localhost:$port/any"
+    // do not redirect 404s to index if there are multiple html entry points
+    go to s"http://localhost:$port/any"
 
-  eventually {
-    find(tagName("pre")).head.text shouldBe "404 - Not Found"
+    eventually {
+      find(tagName("pre")).head.text shouldBe "404 - Not Found"
+    }
+  } catch {
+    case NonFatal(ex) =>
+      println(s"Captured page source:\n$pageSource")
+      throw ex
   }
 
   ()
