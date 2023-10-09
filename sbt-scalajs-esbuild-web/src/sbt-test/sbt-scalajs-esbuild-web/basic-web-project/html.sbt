@@ -6,6 +6,8 @@ InputKey[Unit]("html") := {
   import org.scalatestplus.selenium.WebBrowser
   import org.scalatest.concurrent.Eventually
   import org.scalatest.concurrent.IntegrationPatience
+  import org.scalatest.AppendedClues.convertToClueful
+  import org.scalatest.Inside
 
   val ags = Def.spaceDelimited().parsed.toList
 
@@ -18,7 +20,8 @@ InputKey[Unit]("html") := {
   val webBrowser = new WebBrowser
     with Matchers
     with Eventually
-    with IntegrationPatience {
+    with IntegrationPatience
+    with Inside {
     val chromeOptions: ChromeOptions = {
       val value = new ChromeOptions
       // arguments recommended by https://itnext.io/how-to-run-a-headless-chrome-browser-in-selenium-webdriver-c5521bc12bf0
@@ -38,27 +41,36 @@ InputKey[Unit]("html") := {
   }
   import webBrowser._
 
-  eventually {
-    go to s"http://localhost:$port"
-  }
+  {
+    eventually {
+      go to s"http://localhost:$port"
 
-  eventually {
-    find(tagName("h1")).head.text shouldBe "BASIC-WEB-PROJECT WORKS!"
-  }
+      inside(find(tagName("pre"))) {
+        case None =>
+          succeed
+        case Some(element) =>
+          element.text should not include regex("META file \\[.*\\] not found")
+      }
+    }
 
-  // should return index instead of 404
-  go to s"http://localhost:$port/any"
+    eventually {
+      find(tagName("h1")).head.text shouldBe "BASIC-WEB-PROJECT WORKS!"
+    }
 
-  eventually {
-    find(tagName("h1")).head.text shouldBe "BASIC-WEB-PROJECT WORKS!"
-  }
+    // should return index instead of 404
+    go to s"http://localhost:$port/any"
 
-  // should return 404 for html URLs if html file does not exist
-  go to s"http://localhost:$port/any.html"
+    eventually {
+      find(tagName("h1")).head.text shouldBe "BASIC-WEB-PROJECT WORKS!"
+    }
 
-  eventually {
-    find(tagName("pre")).head.text shouldBe "HTML file [./any.html] not found"
-  }
+    // should return 404 for html URLs if html file does not exist
+    go to s"http://localhost:$port/any.html"
+
+    eventually {
+      find(tagName("pre")).head.text shouldBe "HTML file [./any.html] not found"
+    }
+  } withClue s"Page source:\n[$pageSource]"
 
   ()
 }
