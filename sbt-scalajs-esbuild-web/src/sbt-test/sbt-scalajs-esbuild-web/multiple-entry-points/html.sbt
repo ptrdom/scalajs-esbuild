@@ -1,3 +1,5 @@
+import scala.util.control.NonFatal
+
 InputKey[Unit]("html") := {
   import org.openqa.selenium.WebDriver
   import org.openqa.selenium.chrome.ChromeDriver
@@ -6,6 +8,8 @@ InputKey[Unit]("html") := {
   import org.scalatestplus.selenium.WebBrowser
   import org.scalatest.concurrent.Eventually
   import org.scalatest.concurrent.IntegrationPatience
+  import org.scalatest.AppendedClues.convertToClueful
+  import org.scalatest.Inside
 
   val ags = Def.spaceDelimited().parsed.toList
 
@@ -18,7 +22,8 @@ InputKey[Unit]("html") := {
   val webBrowser = new WebBrowser
     with Matchers
     with Eventually
-    with IntegrationPatience {
+    with IntegrationPatience
+    with Inside {
     val chromeOptions: ChromeOptions = {
       val value = new ChromeOptions
       // arguments recommended by https://itnext.io/how-to-run-a-headless-chrome-browser-in-selenium-webdriver-c5521bc12bf0
@@ -38,34 +43,47 @@ InputKey[Unit]("html") := {
   }
   import webBrowser._
 
-  eventually {
-    go to s"http://localhost:$port"
-  }
+  {
+    eventually {
+      go to s"http://localhost:$port"
 
-  eventually {
-    find(
-      tagName("pre")
-    ).head.text shouldBe "Multiple html entry points defined, unable to pick single root"
-  }
+      inside(find(tagName("pre"))) {
+        case None =>
+          succeed
+        case Some(element) =>
+          element.text should not include regex("META file \\[.*\\] not found")
+      }
+    }
 
-  go to s"http://localhost:$port/index1.html"
+    eventually {
+      find(
+        tagName("pre")
+      ).head.text shouldBe "Multiple html entry points defined, unable to pick single root"
+    }
 
-  eventually {
-    find(tagName("h1")).head.text shouldBe "MULTIPLE-ENTRY-POINTS MAIN1 WORKS!"
-  }
+    go to s"http://localhost:$port/index1.html"
 
-  go to s"http://localhost:$port/index2.html"
+    eventually {
+      find(
+        tagName("h1")
+      ).head.text shouldBe "MULTIPLE-ENTRY-POINTS MAIN1 WORKS!"
+    }
 
-  eventually {
-    find(tagName("h1")).head.text shouldBe "MULTIPLE-ENTRY-POINTS MAIN2 WORKS!"
-  }
+    go to s"http://localhost:$port/index2.html"
 
-  // do not redirect 404s to index if there are multiple html entry points
-  go to s"http://localhost:$port/any"
+    eventually {
+      find(
+        tagName("h1")
+      ).head.text shouldBe "MULTIPLE-ENTRY-POINTS MAIN2 WORKS!"
+    }
 
-  eventually {
-    find(tagName("pre")).head.text shouldBe "404 - Not Found"
-  }
+    // do not redirect 404s to index if there are multiple html entry points
+    go to s"http://localhost:$port/any"
+
+    eventually {
+      find(tagName("pre")).head.text shouldBe "404 - Not Found"
+    }
+  } withClue s"Page source: [\n$pageSource]"
 
   ()
 }
