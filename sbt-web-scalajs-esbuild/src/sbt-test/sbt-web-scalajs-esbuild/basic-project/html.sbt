@@ -6,6 +6,7 @@ InputKey[Unit]("html") := {
   import org.scalatestplus.selenium.WebBrowser
   import org.scalatest.concurrent.Eventually
   import org.scalatest.concurrent.IntegrationPatience
+  import org.scalatest.AppendedClues.convertToClueful
 
   val ags = Def.spaceDelimited().parsed.toList
 
@@ -38,13 +39,15 @@ InputKey[Unit]("html") := {
   }
   import webBrowser._
 
-  eventually {
-    go to s"http://localhost:$port"
-  }
+  {
+    eventually {
+      go to s"http://localhost:$port"
+    }
 
-  eventually {
-    find(tagName("h1")).head.text shouldBe "BASIC-PROJECT-SBT-WEB WORKS!"
-  }
+    eventually {
+      find(tagName("h1")).head.text shouldBe "BASIC-PROJECT-SBT-WEB WORKS!"
+    }
+  } withClue s"Page source:\n[$pageSource]"
 
   ()
 }
