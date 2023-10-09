@@ -183,6 +183,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |        build.onEnd(result => {
              |          const metafileName = 'sbt-scalajs-esbuild-serve-meta.json';
              |          if (!result.metafile) {
+             |            console.warn("Metafile missing in build result")
              |            fs.writeFileSync(metafileName, '{}');
              |          } else {
              |            fs.writeFileSync(metafileName, JSON.stringify(result.metafile));
