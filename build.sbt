@@ -64,6 +64,28 @@ lazy val `sbt-scalajs-esbuild-web` = project
     scriptedDependencies := {
       val () = scriptedDependencies.value
       val () = (`sbt-scalajs-esbuild` / publishLocal).value
+    },
+    // workaround for https://github.com/coursier/sbt-shading/issues/39
+    packagedArtifacts := {
+      val sbtV = (pluginCrossBuild / sbtBinaryVersion).value
+      val scalaV = scalaBinaryVersion.value
+      val packagedArtifactsV = packagedArtifacts.value
+      val nameV = name.value
+
+      val (legacyArtifact, legacyFile) = packagedArtifactsV
+        .find { case (a, _) =>
+          a.`type` == "jar" && a.name == nameV
+        }
+        .getOrElse(sys.error("Legacy jar not found"))
+      val mavenArtifact =
+        legacyArtifact.withName(nameV + s"_${scalaV}_$sbtV")
+      val mavenFile = new File(
+        legacyFile.getParentFile,
+        legacyFile.name.replace(legacyArtifact.name, mavenArtifact.name)
+      )
+      IO.copyFile(legacyFile, mavenFile)
+
+      packagedArtifactsV + (mavenArtifact -> mavenFile)
     }
   )
   .dependsOn(`sbt-scalajs-esbuild`)
