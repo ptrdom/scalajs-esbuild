@@ -7,8 +7,8 @@ import org.scalajs.sbtplugin.Stage
 import org.typelevel.jawn.ast.JObject
 import org.typelevel.jawn.ast.JParser
 import sbt.AutoPlugin
-import sbt._
-import sbt.Keys._
+import sbt.*
+import sbt.Keys.*
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundleScript
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildCompile
@@ -16,7 +16,7 @@ import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildRunner
 
 import java.nio.file.Path
-import scala.sys.process._
+import scala.sys.process.*
 
 object ScalaJSEsbuildWebPlugin extends AutoPlugin {
 
@@ -35,9 +35,9 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
       taskKey[Unit]("Stops running esbuild serve on target directory")
   }
 
-  import autoImport._
+  import autoImport.*
 
-  override lazy val projectSettings: Seq[Setting[_]] =
+  override lazy val projectSettings: Seq[Setting[?]] =
     Seq(
       esbuildBundleHtmlEntryPoints := Seq(
         Path.of("index.html")
@@ -45,7 +45,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
     ) ++ inConfig(Compile)(perConfigSettings) ++
       inConfig(Test)(perConfigSettings)
 
-  private lazy val perConfigSettings: Seq[Setting[_]] = Seq(
+  private lazy val perConfigSettings: Seq[Setting[?]] = Seq(
     jsEnvInput := Def.taskDyn {
       val stageTask = scalaJSStage.value.stageTask
       Def.task {
@@ -87,7 +87,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
     perScalaJSStageSettings(Stage.FastOpt) ++
     perScalaJSStageSettings(Stage.FullOpt)
 
-  private def perScalaJSStageSettings(stage: Stage): Seq[Setting[_]] = {
+  private def perScalaJSStageSettings(stage: Stage): Seq[Setting[?]] = {
     val stageTask = stage.stageTask
 
     Seq(

@@ -2,17 +2,17 @@ package scalajsesbuild
 
 import com.typesafe.sbt.web.PathMapping
 import com.typesafe.sbt.web.pipeline.Pipeline
-import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.*
 import org.scalajs.sbtplugin.Stage
-import sbt._
-import sbt.Keys._
+import sbt.*
+import sbt.Keys.*
 import sbt.Keys.resourceDirectories
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
 import webscalajs.WebScalaJS
-import webscalajs.WebScalaJS.autoImport._
+import webscalajs.WebScalaJS.autoImport.*
 
 import java.nio.file.Files
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 object SbtWebScalaJSEsbuildPlugin extends AutoPlugin {
 
@@ -102,7 +102,7 @@ object SbtWebScalaJSEsbuildPlugin extends AutoPlugin {
       exclude: FileFilter
   ): Seq[PathMapping] =
     for {
-      (file, path) <- mappings
+      case (file, path) <- mappings
       if include.accept(file) && !exclude.accept(file)
     } yield file -> path
 
