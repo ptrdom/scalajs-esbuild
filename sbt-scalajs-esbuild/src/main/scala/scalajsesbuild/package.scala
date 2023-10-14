@@ -3,7 +3,7 @@ import org.scalajs.linker.interface.Report
 import org.scalajs.linker.interface.unstable
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fastLinkJS
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fullLinkJS
-import sbt._
+import sbt.*
 import sbt.sbtOptionSyntaxOptionIdOps
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFastLinkJSWrapper
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFullLinkJSWrapper

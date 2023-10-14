@@ -13,9 +13,9 @@ import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerConfig
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerOutputDirectory
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
 import org.scalajs.sbtplugin.Stage
-import sbt._
+import sbt.*
 import sbt.AutoPlugin
-import sbt.Keys._
+import sbt.Keys.*
 import sbt.nio.Keys.fileInputExcludeFilter
 import sbt.nio.Keys.fileInputs
 import sbt.nio.file.FileTreeView
@@ -55,9 +55,9 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       taskKey[Seq[Path]]("Wraps fullLinkJS task to provide fileOutputs")
   }
 
-  import autoImport._
+  import autoImport.*
 
-  override lazy val projectSettings: Seq[Setting[_]] = Seq(
+  override lazy val projectSettings: Seq[Setting[?]] = Seq(
     scalaJSLinkerConfig ~= {
       _.withModuleKind(ModuleKind.ESModule)
     },
@@ -78,7 +78,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
     inConfig(Compile)(perConfigSettings) ++
     inConfig(Test)(perConfigSettings)
 
-  private lazy val perConfigSettings: Seq[Setting[_]] = Seq(
+  private lazy val perConfigSettings: Seq[Setting[?]] = Seq(
     esbuildInstall / crossTarget := {
       crossTarget.value /
         "esbuild" /
@@ -165,7 +165,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
     perScalaJSStageSettings(Stage.FastOpt) ++
     perScalaJSStageSettings(Stage.FullOpt)
 
-  private def perScalaJSStageSettings(stage: Stage): Seq[Setting[_]] = {
+  private def perScalaJSStageSettings(stage: Stage): Seq[Setting[?]] = {
     val (stageTask, stageTaskWrapper) =
       (stage.stageTask, stage.stageTaskWrapper)
 

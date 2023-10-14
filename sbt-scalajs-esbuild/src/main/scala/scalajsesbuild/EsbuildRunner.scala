@@ -1,6 +1,6 @@
 package scalajsesbuild
 
-import sbt._
+import sbt.*
 import sbt.util.Logger
 
 import scala.sys.process.Process
