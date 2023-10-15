@@ -1,0 +1,12 @@
+{
+  "name": "electron-project",
+  "private": true,
+  "version": "0.0.0",
+  "main": "out/main.js",
+  "repository": {
+    "url": "git+https://github.com/ptrdom/scalajs-esbuild.git"
+  },
+  "devDependencies": {
+    "electron": "22.0.0"
+  }
+}
