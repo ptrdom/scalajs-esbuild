@@ -83,11 +83,12 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       }
     },
     esbuildScalaJSModuleConfigurations := {
-      val modules = (Compile / scalaJSModuleInitializers).value
+      val modules =
+        (Compile / scalaJSModuleInitializers).value // TODO must be scoped per config - cannot exclude main initializers
       modules
         .map(module =>
           module.moduleID -> new EsbuildScalaJSModuleConfiguration(
-            EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser
+            EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser // TODO set based on scalaJSLinkerConfig.value.moduleKind
           )
         )
         .toMap
