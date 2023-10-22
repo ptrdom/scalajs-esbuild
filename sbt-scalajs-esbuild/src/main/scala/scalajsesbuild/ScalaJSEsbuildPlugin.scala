@@ -11,6 +11,7 @@ import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fullLinkJS
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.jsEnvInput
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerConfig
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerOutputDirectory
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSModuleInitializers
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
 import org.scalajs.sbtplugin.Stage
 import sbt.*
@@ -41,6 +42,10 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       taskKey(
         "Compiles module and copies output to target directory"
       )
+    val esbuildScalaJSModuleConfigurations
+        : TaskKey[Map[String, EsbuildScalaJSModuleConfiguration]] = taskKey(
+      "esbuild configurations for Scala.js modules"
+    )
     val esbuildBundleScript: TaskKey[String] = taskKey(
       "esbuild script used for bundling"
     ) // TODO consider doing the writing of the script upon call of this task, then use FileChanges to track changes to the script
@@ -76,6 +81,16 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
           target.value / "streams" / "test" / "_global" / "esbuildCopyResources"
         )
       }
+    },
+    esbuildScalaJSModuleConfigurations := {
+      val modules = (Compile / scalaJSModuleInitializers).value
+      modules
+        .map(module =>
+          module.moduleID -> new EsbuildScalaJSModuleConfiguration(
+            EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser
+          )
+        )
+        .toMap
     }
   ) ++
     inConfig(Compile)(perConfigSettings) ++
