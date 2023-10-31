@@ -1,6 +1,6 @@
-package scalajsesbuild.web
+package scalajsesbuild
 
-object EsbuildScripts {
+object EsbuildWebScripts {
 
   private[scalajsesbuild] def htmlTransform = {
     // language=JS
@@ -49,7 +49,7 @@ object EsbuildScripts {
       |}""".stripMargin
   }
 
-  private[web] def transformHtmlEntryPoints = {
+  private[scalajsesbuild] def transformHtmlEntryPoints = {
     // language=JS
     """
       |const transformHtmlEntryPoints = (htmlEntryPoints, outDirectory, metafile) => {

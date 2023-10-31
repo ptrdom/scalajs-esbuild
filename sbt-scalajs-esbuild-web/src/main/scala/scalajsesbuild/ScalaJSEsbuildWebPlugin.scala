@@ -92,23 +92,57 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
 
     Seq(
       stageTask / esbuildBundleScript := {
-        val targetDir = (esbuildInstall / crossTarget).value
         val stageTaskReport = stageTask.value.data
-        val outdir =
+        val entryPoints = jsFileNames(stageTaskReport).toSeq
+        val entryPointsJsArray =
+          entryPoints.map("'" + _ + "'").mkString("[", ",", "]")
+        val targetDirectory = (esbuildInstall / crossTarget).value
+        val outputDirectory =
           (stageTask / esbuildBundle / crossTarget).value
+        val relativeOutputDirectory =
+          targetDirectory
+            .relativize(outputDirectory)
+            .getOrElse(
+              sys.error(
+                s"Target directory [$targetDirectory] must be parent directory of output directory [$outputDirectory]"
+              )
+            )
         val htmlEntryPoints = esbuildBundleHtmlEntryPoints.value
         require(
           !htmlEntryPoints.forall(_.isAbsolute),
           "HTML entry point paths must be relative"
         )
-        generateEsbuildBundleScript(
-          targetDir = targetDir,
-          outdir = outdir,
-          stageTaskReport = stageTaskReport,
-          outputFilesDirectory = Some("assets"),
-          hashOutputFiles = true,
-          htmlEntryPoints = htmlEntryPoints
-        )
+        val htmlEntryPointsJsArray =
+          htmlEntryPoints.map("'" + _ + "'").mkString("[", ",", "]")
+
+        // language=JS
+        s"""
+           |${EsbuildScripts.esbuildOptions}
+           |
+           |${EsbuildScripts.bundle}
+           |
+           |${EsbuildWebScripts.htmlTransform}
+           |
+           |${EsbuildWebScripts.transformHtmlEntryPoints}
+           |
+           |const metaFilePromise = bundle(
+           |  $entryPointsJsArray,
+           |  ${s"'$relativeOutputDirectory'"},
+           |  'assets',
+           |  true,
+           |  true,
+           |  'sbt-scalajs-esbuild-bundle-meta.json'
+           |);
+           |
+           |metaFilePromise
+           |  .then((metaFile) => {
+           |      transformHtmlEntryPoints(
+           |        $htmlEntryPointsJsArray,
+           |        ${s"'$relativeOutputDirectory'"},
+           |        metaFile
+           |      );
+           |  });
+           |""".stripMargin
       }
     ) ++ {
       var process: Option[Process] = None

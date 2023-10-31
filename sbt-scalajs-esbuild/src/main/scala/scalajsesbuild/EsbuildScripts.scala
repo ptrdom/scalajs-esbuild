@@ -114,6 +114,8 @@ object EsbuildScripts {
       |  );
       |
       |  fs.writeFileSync(metaFileName, JSON.stringify(result.metafile));
+      |
+      |  return result.metafile;
       |};
       |""".stripMargin
   }
