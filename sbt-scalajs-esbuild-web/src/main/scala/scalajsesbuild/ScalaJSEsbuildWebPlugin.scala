@@ -115,6 +115,12 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
         val htmlEntryPointsJsArray =
           htmlEntryPoints.map("'" + _ + "'").mkString("[", ",", "]")
 
+        val (hashOutputFiles, minify) = if (configuration.value == Test) {
+          (false, false)
+        } else {
+          (true, true)
+        }
+
         // language=JS
         s"""
            |${EsbuildScripts.esbuildOptions}
@@ -129,8 +135,8 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
            |  $entryPointsJsArray,
            |  ${s"'$relativeOutputDirectory'"},
            |  'assets',
-           |  true,
-           |  true,
+           |  $hashOutputFiles,
+           |  $minify,
            |  'sbt-scalajs-esbuild-bundle-meta.json'
            |);
            |
