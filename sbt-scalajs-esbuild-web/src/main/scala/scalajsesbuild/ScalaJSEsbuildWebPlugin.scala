@@ -92,23 +92,57 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
 
     Seq(
       stageTask / esbuildBundleScript := {
-        val targetDir = (esbuildInstall / crossTarget).value
         val stageTaskReport = stageTask.value.data
-        val outdir =
+        val entryPoints = jsFileNames(stageTaskReport).toSeq
+        val entryPointsJsArray =
+          entryPoints.map("'" + _ + "'").mkString("[", ",", "]")
+        val targetDirectory = (esbuildInstall / crossTarget).value
+        val outputDirectory =
           (stageTask / esbuildBundle / crossTarget).value
+        val relativeOutputDirectory =
+          targetDirectory
+            .relativize(outputDirectory)
+            .getOrElse(
+              sys.error(
+                s"Target directory [$targetDirectory] must be parent directory of output directory [$outputDirectory]"
+              )
+            )
         val htmlEntryPoints = esbuildBundleHtmlEntryPoints.value
         require(
           !htmlEntryPoints.forall(_.isAbsolute),
           "HTML entry point paths must be relative"
         )
-        generateEsbuildBundleScript(
-          targetDir = targetDir,
-          outdir = outdir,
-          stageTaskReport = stageTaskReport,
-          outputFilesDirectory = Some("assets"),
-          hashOutputFiles = true,
-          htmlEntryPoints = htmlEntryPoints
-        )
+        val htmlEntryPointsJsArray =
+          htmlEntryPoints.map("'" + _ + "'").mkString("[", ",", "]")
+
+        // language=JS
+        s"""
+           |${EsbuildScripts.esbuildOptions}
+           |
+           |${EsbuildScripts.bundle}
+           |
+           |${EsbuildWebScripts.htmlTransform}
+           |
+           |${EsbuildWebScripts.transformHtmlEntryPoints}
+           |
+           |const metaFilePromise = bundle(
+           |  $entryPointsJsArray,
+           |  ${s"'$relativeOutputDirectory'"},
+           |  'assets',
+           |  true,
+           |  true,
+           |  'sbt-scalajs-esbuild-bundle-meta.json'
+           |);
+           |
+           |metaFilePromise
+           |  .then((metaFile) => {
+           |      transformHtmlEntryPoints(
+           |        $htmlEntryPointsJsArray,
+           |        ${s"'$relativeOutputDirectory'"},
+           |        metaFile
+           |      );
+           |  });
+           |""".stripMargin
       }
     ) ++ {
       var process: Option[Process] = None
@@ -123,176 +157,50 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
 
       Seq(
         stageTask / esbuildServeScript := {
-          val targetDir = (esbuildInstall / crossTarget).value
-
-          val entryPoints = jsFileNames(stageTask.value.data)
-            .map(targetDir / _)
-            .toSeq
-          val outdir =
+          val stageTaskReport = stageTask.value.data
+          val entryPoints = jsFileNames(stageTaskReport).toSeq
+          val entryPointsJsArray =
+            entryPoints.map("'" + _ + "'").mkString("[", ",", "]")
+          val targetDirectory = (esbuildInstall / crossTarget).value
+          val outputDirectory =
             (stageTask / esbuildServeStart / crossTarget).value
-
+          val relativeOutputDirectory =
+            targetDirectory
+              .relativize(outputDirectory)
+              .getOrElse(
+                sys.error(
+                  s"Target directory [$targetDirectory] must be parent directory of output directory [$outputDirectory]"
+                )
+              )
           val htmlEntryPoints = esbuildBundleHtmlEntryPoints.value
+          require(
+            !htmlEntryPoints.forall(_.isAbsolute),
+            "HTML entry point paths must be relative"
+          )
+          val htmlEntryPointsJsArray =
+            htmlEntryPoints.map("'" + _ + "'").mkString("[", ",", "]")
 
           // language=JS
           s"""
-             |const http = require('http');
-             |const esbuild = require('esbuild');
-             |const jsdom = require("jsdom")
-             |const { JSDOM } = jsdom;
-             |const fs = require('fs');
-             |const path = require('path');
+             |${EsbuildScripts.esbuildOptions}
              |
-             |$htmlTransformScript
+             |${EsbuildScripts.bundle}
              |
-             |const esbuildLiveReload = (htmlString) => {
-             |  return htmlString
-             |    .toString()
-             |    .replace("</head>", `
-             |      <script type="text/javascript">
-             |        // Based on https://esbuild.github.io/api/#live-reload
-             |        new EventSource('/esbuild').addEventListener('change', e => {
-             |          const { added, removed, updated } = JSON.parse(e.data)
+             |${EsbuildWebScripts.htmlTransform}
              |
-             |          if (!added.length && !removed.length && updated.length === 1) {
-             |            for (const link of document.getElementsByTagName("link")) {
-             |              const url = new URL(link.href)
+             |${EsbuildWebScripts.esbuildLiveReload}
              |
-             |              if (url.host === location.host && url.pathname === updated[0]) {
-             |                const next = link.cloneNode()
-             |                next.href = updated[0] + '?' + Math.random().toString(36).slice(2)
-             |                next.onload = () => link.remove()
-             |                link.parentNode.insertBefore(next, link.nextSibling)
-             |                return
-             |              }
-             |            }
-             |          }
+             |${EsbuildWebScripts.serve}
              |
-             |          location.reload()
-             |        })
-             |      </script>
-             |    </head>
-             |    `);
-             |}
-             |
-             |const serve = async () => {
-             |    // Start esbuild's local web server. Random port will be chosen by esbuild.
-             |
-             |    const plugins = [{
-             |      name: 'metafile-plugin',
-             |      setup(build) {
-             |        build.onEnd(result => {
-             |          const metafileName = 'sbt-scalajs-esbuild-serve-meta.json';
-             |          if (!result.metafile) {
-             |            console.warn("Metafile missing in build result")
-             |            fs.writeFileSync(metafileName, '{}');
-             |          } else {
-             |            fs.writeFileSync(metafileName, JSON.stringify(result.metafile));
-             |          }
-             |        });
-             |      },
-             |    }];
-             |
-             |    const ctx  = await esbuild.context({
-             |${esbuildOptions(
-              entryPoints = entryPoints,
-              outdir = outdir,
-              outputFilesDirectory = Some("assets"),
-              hashOutputFiles = false,
-              minify = false,
-              spaces = 6
-            )}
-             |      plugins: plugins,
-             |    });
-             |
-             |    await ctx.watch()
-             |
-             |    const { host, port } = await ctx.serve({
-             |        servedir: '${outdir.toPath.toStringEscaped}',
-             |        port: 8001
-             |    });
-             |
-             |    // Create a second (proxy) server that will forward requests to esbuild.
-             |    const proxy = http.createServer((req, res) => {
-             |        const metaPath = path.join(__dirname, 'sbt-scalajs-esbuild-serve-meta.json');
-             |        let meta;
-             |        try {
-             |          meta = JSON.parse(fs.readFileSync(metaPath));
-             |        } catch (error) {
-             |          res.writeHead(500);
-             |          res.end('META file ['+metaPath+'] not found');
-             |        }
-             |
-             |        if (meta) {
-             |          // forwardRequest forwards an http request through to esbuid.
-             |          const forwardRequest = (path) => {
-             |              const options = {
-             |                  hostname: host,
-             |                  port,
-             |                  path,
-             |                  method: req.method,
-             |                  headers: req.headers,
-             |              };
-             |
-             |          const multipleEntryPointsFound = ${htmlEntryPoints.size > 1};
-             |
-             |          if (multipleEntryPointsFound && path === "/") {
-             |            res.writeHead(500);
-             |            res.end('Multiple html entry points defined, unable to pick single root');
-             |          } else {
-             |            if (path === "/" || path.endsWith(".html")) {
-             |              let file;
-             |              if (path === "/") {
-             |                file = '/${htmlEntryPoints.head}';
-             |              } else {
-             |                file = path;
-             |              }
-             |
-             |              const htmlFilePath = "."+file;
-             |
-             |              if (fs.existsSync(htmlFilePath)) {
-             |                try {
-             |                  res.writeHead(200, {"Content-Type": "text/html"});
-             |                  res.end(htmlTransform(esbuildLiveReload(fs.readFileSync(htmlFilePath)), '${outdir.toPath.toStringEscaped}', meta));
-             |                } catch (error) {
-             |                  res.writeHead(500);
-             |                  res.end('Failed to transform html ['+error+']');
-             |                }
-             |              } else {
-             |                res.writeHead(404);
-             |                res.end('HTML file ['+htmlFilePath+'] not found');
-             |              }
-             |            } else {
-             |              const proxyReq = http.request(options, (proxyRes) => {
-             |                if (proxyRes.statusCode === 404 && !multipleEntryPointsFound) {
-             |                  // If esbuild 404s the request, assume it's a route needing to
-             |                  // be handled by the JS bundle, so forward a second attempt to `/`.
-             |                  return forwardRequest("/");
-             |                }
-             |
-             |                // Otherwise esbuild handled it like a champ, so proxy the response back.
-             |                res.writeHead(proxyRes.statusCode, proxyRes.headers);
-             |                proxyRes.pipe(res, { end: true });
-             |              });
-             |
-             |              req.pipe(proxyReq, { end: true });
-             |            }
-             |          }
-             |        };
-             |        // When we're called pass the request right through to esbuild.
-             |        forwardRequest(req.url);
-             |      }
-             |    });
-             |
-             |    // Start our proxy server at the specified `listen` port.
-             |    proxy.listen(8000);
-             |
-             |    console.log("Started esbuild serve process [http://localhost:8000]");
-             |};
-             |
-             |// Serves all content from $outdir on :8000.
-             |// If esbuild 404s the request, the request is attempted again
-             |// from `/` assuming that it's an SPA route needing to be handled by the root bundle.
-             |serve();
+             |serve(
+             |  $entryPointsJsArray,
+             |  ${s"'$relativeOutputDirectory'"},
+             |  'assets',
+             |  'sbt-scalajs-esbuild-serve-meta.json',
+             |  8001,
+             |  8000,
+             |  $htmlEntryPointsJsArray
+             |);
              |""".stripMargin
         },
         stageTask / esbuildServeStart / crossTarget := (esbuildInstall / crossTarget).value / "www",

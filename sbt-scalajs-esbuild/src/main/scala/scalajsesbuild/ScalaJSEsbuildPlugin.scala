@@ -189,18 +189,35 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       },
       stageTask / esbuildBundle / crossTarget := (esbuildInstall / crossTarget).value / "out",
       stageTask / esbuildBundleScript := {
-        val targetDir = (esbuildInstall / crossTarget).value
         val stageTaskReport = stageTask.value.data
-        val outdir =
+        val entryPoints = jsFileNames(stageTaskReport).toSeq
+        val targetDirectory = (esbuildInstall / crossTarget).value
+        val outputDirectory =
           (stageTask / esbuildBundle / crossTarget).value
-        generateEsbuildBundleScript(
-          targetDir = targetDir,
-          outdir = outdir,
-          stageTaskReport = stageTaskReport,
-          outputFilesDirectory = None,
-          hashOutputFiles = false,
-          htmlEntryPoints = Seq.empty
-        )
+        val relativeOutputDirectory =
+          targetDirectory
+            .relativize(outputDirectory)
+            .getOrElse(
+              sys.error(
+                s"Target directory [$targetDirectory] must be parent directory of output directory [$outputDirectory]"
+              )
+            )
+
+        // language=JS
+        s"""
+          |${EsbuildScripts.esbuildOptions}
+          |
+          |${EsbuildScripts.bundle}
+          |
+          |bundle(
+          |  ${entryPoints.map("'" + _ + "'").mkString("[", ",", "]")},
+          |  ${s"'$relativeOutputDirectory'"},
+          |  null,
+          |  false,
+          |  true,
+          |  'sbt-scalajs-esbuild-bundle-meta.json'
+          |);
+          |""".stripMargin
       },
       stageTask / esbuildBundle := {
         val log = streams.value.log
