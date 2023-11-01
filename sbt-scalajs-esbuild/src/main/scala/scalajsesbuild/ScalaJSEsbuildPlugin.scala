@@ -72,6 +72,9 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         FileUtil.forceDelete(
           target.value / "streams" / "compile" / "_global" / "esbuildCopyResources"
         )
+        FileUtil.forceDelete(
+          target.value / "streams" / "test" / "_global" / "esbuildCopyResources"
+        )
       }
     }
   ) ++
