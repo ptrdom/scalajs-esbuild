@@ -206,6 +206,12 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
               )
             )
 
+        val minify = if (configuration.value == Test) {
+          false
+        } else {
+          true
+        }
+
         // language=JS
         s"""
           |${EsbuildScripts.esbuildOptions}
@@ -217,7 +223,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
           |  ${s"'$relativeOutputDirectory'"},
           |  null,
           |  false,
-          |  true,
+          |  $minify,
           |  'sbt-scalajs-esbuild-bundle-meta.json'
           |);
           |""".stripMargin
