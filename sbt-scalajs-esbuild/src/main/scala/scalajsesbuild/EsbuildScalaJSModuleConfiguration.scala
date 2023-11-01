@@ -9,5 +9,6 @@ object EsbuildScalaJSModuleConfiguration {
   object EsbuildPlatform {
     case object Browser extends EsbuildPlatform
     case object Node extends EsbuildPlatform
+    case object Neutral extends EsbuildPlatform
   }
 }
