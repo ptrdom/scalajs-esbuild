@@ -63,9 +63,6 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
   import autoImport.*
 
   override lazy val projectSettings: Seq[Setting[?]] = Seq(
-    scalaJSLinkerConfig ~= {
-      _.withModuleKind(ModuleKind.ESModule)
-    },
     esbuildRunner := EsbuildRunner.Default,
     esbuildResourcesDirectory := baseDirectory.value / "esbuild",
     esbuildPackageManager := PackageManager.Npm,
@@ -81,23 +78,27 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
           target.value / "streams" / "test" / "_global" / "esbuildCopyResources"
         )
       }
-    },
-    esbuildScalaJSModuleConfigurations := {
-      val modules =
-        (Compile / scalaJSModuleInitializers).value // TODO must be scoped per config - cannot exclude main initializers
-      modules
-        .map(module =>
-          module.moduleID -> new EsbuildScalaJSModuleConfiguration(
-            EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser // TODO set based on scalaJSLinkerConfig.value.moduleKind
-          )
-        )
-        .toMap
     }
   ) ++
     inConfig(Compile)(perConfigSettings) ++
     inConfig(Test)(perConfigSettings)
 
   private lazy val perConfigSettings: Seq[Setting[?]] = Seq(
+    esbuildScalaJSModuleConfigurations := {
+      val moduleKind = scalaJSLinkerConfig.value.moduleKind
+      val esbuildModuleConfiguration = new EsbuildScalaJSModuleConfiguration(
+        platform = moduleKind match {
+          case ModuleKind.CommonJSModule =>
+            EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Node
+          case _ =>
+            EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser
+        }
+      )
+      val modules = scalaJSModuleInitializers.value
+      modules
+        .map(module => module.moduleID -> esbuildModuleConfiguration)
+        .toMap
+    },
     esbuildInstall / crossTarget := {
       crossTarget.value /
         "esbuild" /
@@ -209,7 +210,13 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       stageTask / esbuildBundle / crossTarget := (esbuildInstall / crossTarget).value / "out",
       stageTask / esbuildBundleScript := {
         val stageTaskReport = stageTask.value.data
-        val entryPoints = jsFileNames(stageTaskReport).toSeq
+        val moduleConfigurations = esbuildScalaJSModuleConfigurations.value
+        val entryPointsByPlatform =
+          extractEntryPointsByPlatform(stageTaskReport, moduleConfigurations)
+        val entryPointsByPlatformJs = "{" + entryPointsByPlatform
+          .foldLeft("") { case (acc, (platform, entryPoints)) =>
+            acc + s"${platform.toString.toLowerCase}:${entryPoints.map("'" + _ + "'").mkString("[", ",", "]")}"
+          } + "}"
         val targetDirectory = (esbuildInstall / crossTarget).value
         val outputDirectory =
           (stageTask / esbuildBundle / crossTarget).value
@@ -221,6 +228,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
                 s"Target directory [$targetDirectory] must be parent directory of output directory [$outputDirectory]"
               )
             )
+        val relativeOutputDirectoryJs = s"'$relativeOutputDirectory'"
 
         val minify = if (configuration.value == Test) {
           false
@@ -235,8 +243,8 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
           |${EsbuildScripts.bundle}
           |
           |bundle(
-          |  ${entryPoints.map("'" + _ + "'").mkString("[", ",", "]")},
-          |  ${s"'$relativeOutputDirectory'"},
+          |  $entryPointsByPlatformJs,
+          |  $relativeOutputDirectoryJs,
           |  null,
           |  false,
           |  $minify,

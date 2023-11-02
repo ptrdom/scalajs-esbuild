@@ -5,6 +5,7 @@ object EsbuildScripts {
   private[scalajsesbuild] def esbuildOptions = {
     // language=JS
     """const esbuildOptions = (
+      |  platform,
       |  entryPoints,
       |  outDirectory,
       |  outputFilesDirectory,
@@ -64,6 +65,7 @@ object EsbuildScripts {
       |  }
       |
       |  return {
+      |    platform: platform,
       |    entryPoints: entryPoints,
       |    bundle: true,
       |    outdir: path.normalize(outDirectory),
@@ -93,29 +95,34 @@ object EsbuildScripts {
   private[scalajsesbuild] def bundle = {
     // language=JS
     """const bundle = async (
-      |  entryPoints,
+      |  entryPointsByPlatform,
       |  outDirectory,
       |  outputFilesDirectory,
       |  hashOutputFiles,
-      |  minify,
-      |  metaFileName
+      |  minify
       |) => {
       |  const esbuild = require('esbuild');
-      |  const fs = require('fs');
       |
-      |  const result = await esbuild.build(
-      |    esbuildOptions(
-      |      entryPoints,
-      |      outDirectory,
-      |      outputFilesDirectory,
-      |      hashOutputFiles,
-      |      minify
-      |    )
+      |  return await Promise.all(
+      |    Object.keys(entryPointsByPlatform).reduce((acc, platform) => {
+      |      const platformMetafilePromise = esbuild
+      |        .build(
+      |          esbuildOptions(
+      |            platform,
+      |            entryPointsByPlatform[platform],
+      |            outDirectory,
+      |            outputFilesDirectory,
+      |            hashOutputFiles,
+      |            minify
+      |          )
+      |        )
+      |        .then((result) => {
+      |          return {[platform]: result.metafile};
+      |        });
+      |      acc.push(platformMetafilePromise);
+      |      return acc;
+      |    }, [])
       |  );
-      |
-      |  fs.writeFileSync(metaFileName, JSON.stringify(result.metafile));
-      |
-      |  return result.metafile;
       |};
       |""".stripMargin
   }
