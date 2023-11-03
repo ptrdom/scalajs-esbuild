@@ -145,7 +145,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
            |${EsbuildWebScripts.transformHtmlEntryPoints}
            |
            |const metaFilePromise = bundle(
-           |  ${EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Node.jsValue},
+           |  ${EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser.jsValue},
            |  $entryPointsJsArray,
            |  $relativeOutputDirectoryJs,
            |  'assets',
