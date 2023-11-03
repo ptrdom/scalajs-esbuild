@@ -9,7 +9,9 @@ final class EsbuildScalaJSModuleConfiguration(val platform: EsbuildPlatform) {
 }
 
 object EsbuildScalaJSModuleConfiguration {
-  sealed trait EsbuildPlatform
+  sealed trait EsbuildPlatform {
+    def jsValue: String = s"'${toString.toLowerCase}'"
+  }
   object EsbuildPlatform {
     case object Browser extends EsbuildPlatform
     case object Node extends EsbuildPlatform

@@ -215,7 +215,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
           extractEntryPointsByPlatform(stageTaskReport, moduleConfigurations)
         val entryPointsByPlatformJs = "{" + entryPointsByPlatform
           .foldLeft("") { case (acc, (platform, entryPoints)) =>
-            acc + s"${platform.toString.toLowerCase}:${entryPoints.map("'" + _ + "'").mkString("[", ",", "]")}"
+            acc + s"${platform.jsValue}:${entryPoints.map("'" + _ + "'").mkString("[", ",", "]")}"
           } + "}"
         val targetDirectory = (esbuildInstall / crossTarget).value
         val outputDirectory =

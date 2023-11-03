@@ -100,9 +100,11 @@ object EsbuildScripts {
       |  outDirectory,
       |  outputFilesDirectory,
       |  hashOutputFiles,
-      |  minify
+      |  minify,
+      |  metaFileName
       |) => {
       |  const esbuild = require('esbuild');
+      |  const fs = require('fs');
       |
       |  const result = await esbuild.build(
       |    esbuildOptions(
@@ -114,6 +116,10 @@ object EsbuildScripts {
       |      minify
       |    )
       |  );
+      |
+      |  if (metaFileName) {
+      |    fs.writeFileSync(metaFileName, JSON.stringify(result.metafile));
+      |  }
       |
       |  return result.metafile;
       |};
