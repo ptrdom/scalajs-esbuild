@@ -95,7 +95,8 @@ object EsbuildScripts {
   private[scalajsesbuild] def bundle = {
     // language=JS
     """const bundle = async (
-      |  entryPointsByPlatform,
+      |  platform,
+      |  entryPoints,
       |  outDirectory,
       |  outputFilesDirectory,
       |  hashOutputFiles,
@@ -103,11 +104,36 @@ object EsbuildScripts {
       |) => {
       |  const esbuild = require('esbuild');
       |
-      |  return await Promise.all(
-      |    Object.keys(entryPointsByPlatform).reduce((acc, platform) => {
-      |      const platformMetafilePromise = esbuild
-      |        .build(
-      |          esbuildOptions(
+      |  const result = await esbuild.build(
+      |    esbuildOptions(
+      |      platform,
+      |      entryPoints,
+      |      outDirectory,
+      |      outputFilesDirectory,
+      |      hashOutputFiles,
+      |      minify
+      |    )
+      |  );
+      |
+      |  return result.metafile;
+      |};
+      |""".stripMargin
+  }
+
+  private[scalajsesbuild] def bundleByPlatform = {
+    // language=JS
+    """const bundleByPlatform = async (
+      |  entryPointsByPlatform,
+      |  outDirectory,
+      |  outputFilesDirectory,
+      |  hashOutputFiles,
+      |  minify
+      |) => {
+      |  return await Promise
+      |    .all(
+      |      Object.keys(entryPointsByPlatform).reduce((acc, platform) => {
+      |        const platformMetafilePromise =
+      |          bundle(
       |            platform,
       |            entryPointsByPlatform[platform],
       |            outDirectory,
@@ -115,14 +141,14 @@ object EsbuildScripts {
       |            hashOutputFiles,
       |            minify
       |          )
-      |        )
-      |        .then((result) => {
-      |          return {[platform]: result.metafile};
-      |        });
-      |      acc.push(platformMetafilePromise);
-      |      return acc;
-      |    }, [])
-      |  );
+      |          .then((metafile) => {
+      |            return {[platform]: metafile};
+      |          });
+      |        acc.push(platformMetafilePromise);
+      |        return acc;
+      |      }, [])
+      |    )
+      |    .then((results) => results.reduce((acc, result) => ({...acc, ...result}) , {}));
       |};
       |""".stripMargin
   }

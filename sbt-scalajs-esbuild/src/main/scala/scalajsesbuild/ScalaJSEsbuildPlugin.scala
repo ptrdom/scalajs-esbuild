@@ -242,13 +242,14 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
           |
           |${EsbuildScripts.bundle}
           |
-          |bundle(
+          |${EsbuildScripts.bundleByPlatform}
+          |
+          |bundleByPlatform(
           |  $entryPointsByPlatformJs,
           |  $relativeOutputDirectoryJs,
           |  null,
           |  false,
-          |  $minify,
-          |  'sbt-scalajs-esbuild-bundle-meta.json'
+          |  $minify
           |);
           |""".stripMargin
       },
