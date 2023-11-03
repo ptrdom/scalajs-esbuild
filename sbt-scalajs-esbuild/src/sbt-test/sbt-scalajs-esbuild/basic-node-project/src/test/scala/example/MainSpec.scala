@@ -7,7 +7,7 @@ class MainSpec extends AnyWordSpec with Matchers {
 
   "Main" should {
     "work" in {
-      Main.testString() shouldEqual "BASIC-NODE-PROJECT WORKS!"
+      Main.test() shouldEqual "BASIC-NODE-PROJECT WORKS!"
     }
   }
 }
