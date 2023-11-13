@@ -103,3 +103,13 @@ lazy val `sbt-web-scalajs-esbuild` =
       }
     )
     .dependsOn(`sbt-scalajs-esbuild-web`)
+
+TaskKey[Unit]("scriptedSequentialPerModule") := {
+  Def.taskDyn {
+    val projects: Seq[ProjectReference] = `scalajs-esbuild`.aggregate
+    Def
+      .sequential(
+        projects.map(p => Def.taskDyn((p / scripted).toTask("")))
+      )
+  }.value
+}
