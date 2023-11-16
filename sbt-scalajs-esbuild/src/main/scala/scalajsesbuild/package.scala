@@ -26,6 +26,36 @@ package object scalajsesbuild {
     }
   }
 
+  private[scalajsesbuild] def extractEntryPointsByPlatform(
+      report: Report,
+      moduleConfigurations: Map[String, EsbuildScalaJSModuleConfiguration]
+  ) = {
+    report match {
+      case report: unstable.ReportImpl =>
+        report.publicModules
+          .foldLeft(
+            Map.empty[EsbuildScalaJSModuleConfiguration.EsbuildPlatform, Set[
+              String
+            ]]
+          ) { case (acc, publicModule) =>
+            val platform = moduleConfigurations
+              .getOrElse(
+                publicModule.moduleID,
+                sys.error(
+                  s"esbuild module configuration missing for moduleID [${publicModule.moduleID}]"
+                )
+              )
+              .platform
+            acc.updated(
+              platform,
+              acc.getOrElse(platform, Set.empty) + publicModule.jsFileName
+            )
+          }
+      case unhandled =>
+        sys.error(s"Unhandled report type [$unhandled]")
+    }
+  }
+
   private[scalajsesbuild] def jsFileNames(report: Report) = {
     report match {
       case report: unstable.ReportImpl =>

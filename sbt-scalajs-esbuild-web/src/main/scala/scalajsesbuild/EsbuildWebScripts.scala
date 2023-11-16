@@ -139,6 +139,7 @@ object EsbuildWebScripts {
       |
       |  const ctx  = await esbuild.context({
       |    ...esbuildOptions(
+      |      'browser',
       |      entryPoints,
       |      outDirectory,
       |      outputFilesDirectory,
