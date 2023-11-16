@@ -1,7 +1,9 @@
 package scalajsesbuild
 
 import org.scalajs.jsenv.Input.Script
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.ModuleKind
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.jsEnvInput
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerConfig
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
 import org.scalajs.sbtplugin.Stage
 import org.typelevel.jawn.ast.JObject
@@ -14,8 +16,9 @@ import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundleScript
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildCompile
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildRunner
-
+import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildScalaJSModuleConfigurations
 import java.nio.file.Path
+
 import scala.sys.process.*
 
 object ScalaJSEsbuildWebPlugin extends AutoPlugin {
@@ -39,6 +42,9 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
 
   override lazy val projectSettings: Seq[Setting[?]] =
     Seq(
+      scalaJSLinkerConfig ~= {
+        _.withModuleKind(ModuleKind.ESModule)
+      },
       esbuildBundleHtmlEntryPoints := Seq(
         Path.of("index.html")
       )
@@ -93,7 +99,13 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
     Seq(
       stageTask / esbuildBundleScript := {
         val stageTaskReport = stageTask.value.data
-        val entryPoints = jsFileNames(stageTaskReport).toSeq
+        val moduleConfigurations = esbuildScalaJSModuleConfigurations.value
+        val entryPoints =
+          extractEntryPointsByPlatform(stageTaskReport, moduleConfigurations)
+            .getOrElse(
+              EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser,
+              Set.empty
+            )
         val entryPointsJsArray =
           entryPoints.map("'" + _ + "'").mkString("[", ",", "]")
         val targetDirectory = (esbuildInstall / crossTarget).value
@@ -107,6 +119,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
                 s"Target directory [$targetDirectory] must be parent directory of output directory [$outputDirectory]"
               )
             )
+        val relativeOutputDirectoryJs = s"'$relativeOutputDirectory'"
         val htmlEntryPoints = esbuildBundleHtmlEntryPoints.value
         require(
           !htmlEntryPoints.forall(_.isAbsolute),
@@ -132,8 +145,9 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
            |${EsbuildWebScripts.transformHtmlEntryPoints}
            |
            |const metaFilePromise = bundle(
+           |  ${EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser.jsValue},
            |  $entryPointsJsArray,
-           |  ${s"'$relativeOutputDirectory'"},
+           |  $relativeOutputDirectoryJs,
            |  'assets',
            |  $hashOutputFiles,
            |  $minify,
@@ -144,7 +158,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
            |  .then((metaFile) => {
            |      transformHtmlEntryPoints(
            |        $htmlEntryPointsJsArray,
-           |        ${s"'$relativeOutputDirectory'"},
+           |        $relativeOutputDirectoryJs,
            |        metaFile
            |      );
            |  });
@@ -164,7 +178,13 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
       Seq(
         stageTask / esbuildServeScript := {
           val stageTaskReport = stageTask.value.data
-          val entryPoints = jsFileNames(stageTaskReport).toSeq
+          val moduleConfigurations = esbuildScalaJSModuleConfigurations.value
+          val entryPoints =
+            extractEntryPointsByPlatform(stageTaskReport, moduleConfigurations)
+              .getOrElse(
+                EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser,
+                Set.empty
+              )
           val entryPointsJsArray =
             entryPoints.map("'" + _ + "'").mkString("[", ",", "]")
           val targetDirectory = (esbuildInstall / crossTarget).value
@@ -178,6 +198,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
                   s"Target directory [$targetDirectory] must be parent directory of output directory [$outputDirectory]"
                 )
               )
+          val relativeOutputDirectoryJs = s"'$relativeOutputDirectory'"
           val htmlEntryPoints = esbuildBundleHtmlEntryPoints.value
           require(
             !htmlEntryPoints.forall(_.isAbsolute),
@@ -200,7 +221,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
              |
              |serve(
              |  $entryPointsJsArray,
-             |  ${s"'$relativeOutputDirectory'"},
+             |  $relativeOutputDirectoryJs,
              |  'assets',
              |  'sbt-scalajs-esbuild-serve-meta.json',
              |  8001,
