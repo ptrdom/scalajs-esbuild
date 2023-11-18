@@ -23,7 +23,8 @@ lazy val `scalajs-esbuild` = (project in file("."))
   .aggregate(
     `sbt-scalajs-esbuild`,
     `sbt-scalajs-esbuild-web`,
-    `sbt-web-scalajs-esbuild`
+    `sbt-web-scalajs-esbuild`,
+    `sbt-scalajs-esbuild-electron`
   )
 
 lazy val commonSettings = Seq(
@@ -117,6 +118,7 @@ lazy val `sbt-scalajs-esbuild-electron` =
     )
     .dependsOn(`sbt-scalajs-esbuild-web`)
 
+// workaround for https://github.com/sbt/sbt/issues/7431
 TaskKey[Unit]("scriptedSequentialPerModule") := {
   Def.taskDyn {
     val projects: Seq[ProjectReference] = `scalajs-esbuild`.aggregate
