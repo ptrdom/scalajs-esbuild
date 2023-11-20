@@ -5,6 +5,10 @@ updates:
     schedule:
       interval: "daily"
   - package-ecosystem: "npm"
+    directory: "/sbt-scalajs-esbuild/src/sbt-test/sbt-scalajs-esbuild/basic-browser-project/esbuild/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "npm"
     directory: "/sbt-scalajs-esbuild/src/sbt-test/sbt-scalajs-esbuild/basic-node-project/esbuild/"
     schedule:
       interval: "daily"
