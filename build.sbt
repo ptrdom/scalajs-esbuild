@@ -22,9 +22,9 @@ lazy val `scalajs-esbuild` = (project in file("."))
   .settings(publish / skip := true)
   .aggregate(
     `sbt-scalajs-esbuild`,
+    `sbt-scalajs-esbuild-electron`,
     `sbt-scalajs-esbuild-web`,
-    `sbt-web-scalajs-esbuild`,
-    `sbt-scalajs-esbuild-electron`
+    `sbt-web-scalajs-esbuild`
   )
 
 lazy val commonSettings = Seq(
@@ -32,6 +32,31 @@ lazy val commonSettings = Seq(
     "-Dplugin.version=" + version.value
   ),
   scriptedBufferLog := false
+)
+
+def shadingSettings = Seq(
+  // workaround for https://github.com/coursier/sbt-shading/issues/39
+  packagedArtifacts := {
+    val sbtV = (pluginCrossBuild / sbtBinaryVersion).value
+    val scalaV = scalaBinaryVersion.value
+    val packagedArtifactsV = packagedArtifacts.value
+    val nameV = name.value
+
+    val (legacyArtifact, legacyFile) = packagedArtifactsV
+      .find { case (a, _) =>
+        a.`type` == "jar" && a.name == nameV
+      }
+      .getOrElse(sys.error("Legacy jar not found"))
+    val mavenArtifact =
+      legacyArtifact.withName(nameV + s"_${scalaV}_$sbtV")
+    val mavenFile = new File(
+      legacyFile.getParentFile,
+      legacyFile.name.replace(legacyArtifact.name, mavenArtifact.name)
+    )
+    IO.copyFile(legacyFile, mavenFile)
+
+    packagedArtifactsV + (mavenArtifact -> mavenFile)
+  }
 )
 
 lazy val `sbt-scalajs-esbuild` =
@@ -66,28 +91,7 @@ lazy val `sbt-scalajs-esbuild-web` = project
       val () = scriptedDependencies.value
       val () = (`sbt-scalajs-esbuild` / publishLocal).value
     },
-    // workaround for https://github.com/coursier/sbt-shading/issues/39
-    packagedArtifacts := {
-      val sbtV = (pluginCrossBuild / sbtBinaryVersion).value
-      val scalaV = scalaBinaryVersion.value
-      val packagedArtifactsV = packagedArtifacts.value
-      val nameV = name.value
-
-      val (legacyArtifact, legacyFile) = packagedArtifactsV
-        .find { case (a, _) =>
-          a.`type` == "jar" && a.name == nameV
-        }
-        .getOrElse(sys.error("Legacy jar not found"))
-      val mavenArtifact =
-        legacyArtifact.withName(nameV + s"_${scalaV}_$sbtV")
-      val mavenFile = new File(
-        legacyFile.getParentFile,
-        legacyFile.name.replace(legacyArtifact.name, mavenArtifact.name)
-      )
-      IO.copyFile(legacyFile, mavenFile)
-
-      packagedArtifactsV + (mavenArtifact -> mavenFile)
-    }
+    shadingSettings
   )
   .dependsOn(`sbt-scalajs-esbuild`)
 
@@ -113,8 +117,9 @@ lazy val `sbt-scalajs-esbuild-electron` =
     .settings(
       scriptedDependencies := {
         val () = scriptedDependencies.value
-        val () = (`sbt-scalajs-esbuild-web` / publishLocal).value
-      }
+        val () = (`sbt-scalajs-esbuild` / publishLocal).value
+      },
+      shadingSettings
     )
     .dependsOn(`sbt-scalajs-esbuild-web`)
 

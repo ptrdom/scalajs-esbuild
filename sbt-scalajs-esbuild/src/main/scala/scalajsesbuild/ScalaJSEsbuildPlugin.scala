@@ -86,7 +86,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
   private lazy val perConfigSettings: Seq[Setting[?]] = Seq(
     esbuildScalaJSModuleConfigurations := {
       val moduleKind = scalaJSLinkerConfig.value.moduleKind
-      val esbuildModuleConfiguration = new EsbuildScalaJSModuleConfiguration(
+      val scalaJSModuleConfiguration = new EsbuildScalaJSModuleConfiguration(
         platform = moduleKind match {
           case ModuleKind.CommonJSModule =>
             EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Node
@@ -96,7 +96,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       )
       val modules = scalaJSModuleInitializers.value
       modules
-        .map(module => module.moduleID -> esbuildModuleConfiguration)
+        .map(module => module.moduleID -> scalaJSModuleConfiguration)
         .toMap
     },
     esbuildInstall / crossTarget := {
