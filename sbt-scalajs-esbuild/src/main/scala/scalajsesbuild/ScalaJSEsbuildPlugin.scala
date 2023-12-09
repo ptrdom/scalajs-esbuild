@@ -153,18 +153,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
 
       changeStatus
     },
-    jsEnvInput := Def.taskDyn {
-      val stageTask = scalaJSStage.value.stageTask
-      Def.task {
-        (stageTask / esbuildBundle).value
-
-        jsFileNames(stageTask.value.data)
-          .map((stageTask / esbuildBundle / crossTarget).value / _)
-          .map(_.toPath)
-          .map(Script)
-          .toSeq
-      }
-    }.value,
+    jsEnvInput := jsEnvInputTask.value,
     esbuildFastLinkJSWrapper := {
       fastLinkJS.value
       FileTreeView.default

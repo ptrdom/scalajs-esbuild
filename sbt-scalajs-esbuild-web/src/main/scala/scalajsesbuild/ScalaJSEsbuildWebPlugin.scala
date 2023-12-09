@@ -163,6 +163,60 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
            |      );
            |  });
            |""".stripMargin
+      },
+      stageTask / esbuildServeScript := {
+        val stageTaskReport = stageTask.value.data
+        val moduleConfigurations = esbuildScalaJSModuleConfigurations.value
+        val entryPoints =
+          extractEntryPointsByPlatform(stageTaskReport, moduleConfigurations)
+            .getOrElse(
+              EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser,
+              Set.empty
+            )
+        val entryPointsJsArray =
+          entryPoints.map("'" + _ + "'").mkString("[", ",", "]")
+        val targetDirectory = (esbuildInstall / crossTarget).value
+        val outputDirectory =
+          (stageTask / esbuildServeStart / crossTarget).value
+        val relativeOutputDirectory =
+          targetDirectory
+            .relativize(outputDirectory)
+            .getOrElse(
+              sys.error(
+                s"Target directory [$targetDirectory] must be parent directory of output directory [$outputDirectory]"
+              )
+            )
+        val relativeOutputDirectoryJs = s"'$relativeOutputDirectory'"
+        val htmlEntryPoints = esbuildBundleHtmlEntryPoints.value
+        require(
+          !htmlEntryPoints.forall(_.isAbsolute),
+          "HTML entry point paths must be relative"
+        )
+        val htmlEntryPointsJsArray =
+          htmlEntryPoints.map("'" + _ + "'").mkString("[", ",", "]")
+
+        // language=JS
+        s"""
+           |${EsbuildScripts.esbuildOptions}
+           |
+           |${EsbuildScripts.bundle}
+           |
+           |${EsbuildWebScripts.htmlTransform}
+           |
+           |${EsbuildWebScripts.esbuildLiveReload}
+           |
+           |${EsbuildWebScripts.serve}
+           |
+           |serve(
+           |  $entryPointsJsArray,
+           |  $relativeOutputDirectoryJs,
+           |  'assets',
+           |  'sbt-scalajs-esbuild-serve-meta.json',
+           |  8001,
+           |  8000,
+           |  $htmlEntryPointsJsArray
+           |);
+           |""".stripMargin
       }
     ) ++ {
       var process: Option[Process] = None
@@ -176,60 +230,6 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
       }
 
       Seq(
-        stageTask / esbuildServeScript := {
-          val stageTaskReport = stageTask.value.data
-          val moduleConfigurations = esbuildScalaJSModuleConfigurations.value
-          val entryPoints =
-            extractEntryPointsByPlatform(stageTaskReport, moduleConfigurations)
-              .getOrElse(
-                EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser,
-                Set.empty
-              )
-          val entryPointsJsArray =
-            entryPoints.map("'" + _ + "'").mkString("[", ",", "]")
-          val targetDirectory = (esbuildInstall / crossTarget).value
-          val outputDirectory =
-            (stageTask / esbuildServeStart / crossTarget).value
-          val relativeOutputDirectory =
-            targetDirectory
-              .relativize(outputDirectory)
-              .getOrElse(
-                sys.error(
-                  s"Target directory [$targetDirectory] must be parent directory of output directory [$outputDirectory]"
-                )
-              )
-          val relativeOutputDirectoryJs = s"'$relativeOutputDirectory'"
-          val htmlEntryPoints = esbuildBundleHtmlEntryPoints.value
-          require(
-            !htmlEntryPoints.forall(_.isAbsolute),
-            "HTML entry point paths must be relative"
-          )
-          val htmlEntryPointsJsArray =
-            htmlEntryPoints.map("'" + _ + "'").mkString("[", ",", "]")
-
-          // language=JS
-          s"""
-             |${EsbuildScripts.esbuildOptions}
-             |
-             |${EsbuildScripts.bundle}
-             |
-             |${EsbuildWebScripts.htmlTransform}
-             |
-             |${EsbuildWebScripts.esbuildLiveReload}
-             |
-             |${EsbuildWebScripts.serve}
-             |
-             |serve(
-             |  $entryPointsJsArray,
-             |  $relativeOutputDirectoryJs,
-             |  'assets',
-             |  'sbt-scalajs-esbuild-serve-meta.json',
-             |  8001,
-             |  8000,
-             |  $htmlEntryPointsJsArray
-             |);
-             |""".stripMargin
-        },
         stageTask / esbuildServeStart / crossTarget := (esbuildInstall / crossTarget).value / "www",
         stageTask / esbuildServeStart := {
           val logger = state.value.globalLogging.full

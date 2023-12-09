@@ -1,9 +1,14 @@
 import java.nio.file.Path
+
+import org.scalajs.jsenv.Input.Script
 import org.scalajs.linker.interface.Report
 import org.scalajs.linker.interface.unstable
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fastLinkJS
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fullLinkJS
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
 import sbt.*
+import sbt.Keys.crossTarget
+import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFastLinkJSWrapper
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFullLinkJSWrapper
 
@@ -112,6 +117,19 @@ package object scalajsesbuild {
         modified = fileChanges.modified ++ that.modified,
         unmodified = fileChanges.unmodified ++ that.unmodified
       )
+    }
+  }
+
+  private[scalajsesbuild] def jsEnvInputTask = Def.taskDyn {
+    val stageTask = scalaJSStage.value.stageTask
+    Def.task {
+      (stageTask / esbuildBundle).value
+
+      jsFileNames(stageTask.value.data)
+        .map((stageTask / esbuildBundle / crossTarget).value / _)
+        .map(_.toPath)
+        .map(Script)
+        .toSeq
     }
   }
 }
