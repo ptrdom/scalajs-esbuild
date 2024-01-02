@@ -27,7 +27,7 @@ object Main extends App {
       .asInstanceOf[js.UndefOr[String]]
       .toOption
       .fold(
-        mainWindow.loadFile(join(__dirname, "../dist", "index.html"))
+        mainWindow.loadFile(join(__dirname, "../out", "index.html"))
       )(url => mainWindow.loadURL(url))
 
     // Open the DevTools.

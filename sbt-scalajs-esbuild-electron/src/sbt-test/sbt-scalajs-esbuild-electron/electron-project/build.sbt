@@ -18,6 +18,12 @@ scalaJSModuleInitializers := Seq(
     .withModuleID("renderer")
 )
 
+Compile / esbuildElectronProcessConfiguration := new scalajsesbuild.EsbuildElectronProcessConfiguration(
+  "main",
+  Set("preload"),
+  Set("renderer")
+)
+
 // Suppress meaningless 'multiple main classes detected' warning
 Compile / mainClass := None
 

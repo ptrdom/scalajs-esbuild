@@ -4,6 +4,7 @@ import java.nio.file.Path
 
 import org.scalajs.jsenv.Input.Script
 import org.scalajs.linker.interface.ModuleInitializer
+import org.scalajs.linker.interface.unstable.ReportImpl
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.ModuleKind
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.jsEnvInput
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerConfig
@@ -20,6 +21,7 @@ import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildScalaJSModuleConfigurations
 import scalajsesbuild.ScalaJSEsbuildWebPlugin.autoImport.esbuildBundleHtmlEntryPoints
 import scalajsesbuild.ScalaJSEsbuildWebPlugin.autoImport.esbuildServeScript
+import scalajsesbuild.electron.*
 
 object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
 
@@ -39,42 +41,25 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
     Seq(
       scalaJSLinkerConfig ~= {
         _.withModuleKind(ModuleKind.CommonJSModule)
+      },
+      esbuildElectronProcessConfiguration := {
+        // TODO need to deal with main module name collision with org.scalajs.ir.Names.DefaultModuleID
+
+        val modules: Seq[ModuleInitializer] = scalaJSModuleInitializers.value
+        (modules.headOption, modules.tail.isEmpty) match {
+          case (Some(module), true) =>
+            EsbuildElectronProcessConfiguration.main(module.moduleID)
+          case _ =>
+            sys.error(
+              "Unable to automatically derive `esbuildElectronProcessConfiguration`, the settings needs to be provided manually"
+            )
+        }
       }
     ) ++ inConfig(Compile)(perConfigSettings) ++
       inConfig(Test)(perConfigSettings)
 
   private lazy val perConfigSettings: Seq[Setting[?]] = Seq(
-    esbuildElectronProcessConfiguration := {
-      val modules: Seq[ModuleInitializer] = scalaJSModuleInitializers.value
-      (modules.headOption, modules.tail.isEmpty) match {
-        case (Some(module), true) =>
-          EsbuildElectronProcessConfiguration.main(module.moduleID)
-        case _ =>
-          sys.error(
-            "Unable to automatically derive `esbuildElectronProcessConfiguration`, the settings needs to be provided manually"
-          )
-      }
-    },
-    esbuildScalaJSModuleConfigurations := {
-      val electronProcessConfiguration =
-        esbuildElectronProcessConfiguration.value
-      val modules = scalaJSModuleInitializers.value
-      modules
-        .map(module =>
-          module.moduleID ->
-            new EsbuildScalaJSModuleConfiguration(
-              if (
-                electronProcessConfiguration.rendererModuleIDs
-                  .contains(module.moduleID)
-              ) {
-                EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser
-              } else {
-                EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Node
-              }
-            )
-        )
-        .toMap
-    },
+    esbuildScalaJSModuleConfigurations := Map.empty,
     jsEnvInput := jsEnvInputTask.value
   ) ++
     perScalaJSStageSettings(Stage.FastOpt) ++
@@ -86,10 +71,23 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
     Seq(
       stageTask / esbuildBundleScript := {
         val stageTaskReport = stageTask.value.data
-        val moduleConfigurations = esbuildScalaJSModuleConfigurations.value
-        val entryPointsJsArrayByPlatform =
-          extractEntryPointsByPlatform(stageTaskReport, moduleConfigurations)
-            .mapValues(_.map("'" + _ + "'").mkString("[", ",", "]"))
+        val electronProcessConfiguration =
+          esbuildElectronProcessConfiguration.value
+        val (
+          mainModuleEntryPoint,
+          preloadModuleEntryPoints,
+          rendererModuleEntryPoints
+        ) = extractEntryPointsByProcess(
+          stageTaskReport,
+          electronProcessConfiguration
+        )
+        val nodeEntryPointsJsArray =
+          (preloadModuleEntryPoints + mainModuleEntryPoint)
+            .map("'" + _ + "'")
+            .mkString("[", ",", "]")
+        val rendererModuleEntryPointsJsArray = rendererModuleEntryPoints
+          .map("'" + _ + "'")
+          .mkString("[", ",", "]")
         val targetDirectory = (esbuildInstall / crossTarget).value
         val outputDirectory =
           (stageTask / esbuildBundle / crossTarget).value
@@ -110,6 +108,13 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
         val htmlEntryPointsJsArray =
           htmlEntryPoints.map("'" + _ + "'").mkString("[", ",", "]")
 
+        val minify = if (configuration.value == Test) {
+          false
+        } else {
+          true
+        }
+
+        // language=JS
         s"""
           |${EsbuildScripts.esbuildOptions}
           |
@@ -119,7 +124,37 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
           |
           |${EsbuildWebScripts.transformHtmlEntryPoints}
           |
+          |bundle(
+          |  ${EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Node.jsValue},
+          |  $nodeEntryPointsJsArray,
+          |  $relativeOutputDirectoryJs,
+          |  null,
+          |  false,
+          |  $minify,
+          |  'sbt-scalajs-esbuild-node-bundle-meta.json',
+          |  {
+          |    external: ['electron']
+          |  }
+          |);
           |
+          |const metaFilePromise = bundle(
+          |  ${EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser.jsValue},
+          |  $rendererModuleEntryPointsJsArray,
+          |  $relativeOutputDirectoryJs,
+          |  'assets',
+          |  false,
+          |  $minify,
+          |  'sbt-scalajs-esbuild-renderer-bundle-meta.json'
+          |);
+          |
+          |metaFilePromise
+          |  .then((metaFile) => {
+          |      transformHtmlEntryPoints(
+          |        $htmlEntryPointsJsArray,
+          |        $relativeOutputDirectoryJs,
+          |        metaFile
+          |      );
+          |  });
           |""".stripMargin
       },
       stageTask / esbuildServeScript := {
