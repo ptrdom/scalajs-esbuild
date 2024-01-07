@@ -4,13 +4,16 @@ import java.nio.file.Path
 
 import org.scalajs.jsenv.Input.Script
 import org.scalajs.linker.interface.ModuleInitializer
+import org.scalajs.linker.interface.unstable.ModuleInitializerImpl
 import org.scalajs.linker.interface.unstable.ReportImpl
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.ModuleKind
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.jsEnvInput
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerConfig
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSMainModuleInitializer
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSModuleInitializers
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
 import org.scalajs.sbtplugin.Stage
+import org.scalajs.testing.adapter.TestAdapterInitializer
 import sbt.AutoPlugin
 import sbt.Plugins
 import sbt.*
@@ -40,11 +43,11 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
   override lazy val projectSettings: Seq[Setting[?]] =
     Seq(
       scalaJSLinkerConfig ~= {
-        _.withModuleKind(ModuleKind.CommonJSModule)
+        _.withModuleKind(
+          ModuleKind.ESModule
+        ) // TODO try using CommonJSModule - need to figure out how to disable Closure compiler
       },
       esbuildElectronProcessConfiguration := {
-        // TODO need to deal with main module name collision with org.scalajs.ir.Names.DefaultModuleID
-
         val modules: Seq[ModuleInitializer] = scalaJSModuleInitializers.value
         (modules.headOption, modules.tail.isEmpty) match {
           case (Some(module), true) =>
@@ -60,6 +63,23 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
 
   private lazy val perConfigSettings: Seq[Setting[?]] = Seq(
     esbuildScalaJSModuleConfigurations := Map.empty,
+    scalaJSModuleInitializers := {
+      scalaJSModuleInitializers.value
+        .map { moduleInitializer =>
+          moduleInitializer.initializer match {
+            case test
+                if test == ModuleInitializer
+                  .mainMethod(
+                    TestAdapterInitializer.ModuleClassName,
+                    TestAdapterInitializer.MainMethodName
+                  )
+                  .initializer =>
+              moduleInitializer.withModuleID("test-main")
+            case _ =>
+              moduleInitializer
+          }
+        }
+    },
     jsEnvInput := jsEnvInputTask.value
   ) ++
     perScalaJSStageSettings(Stage.FastOpt) ++
@@ -70,6 +90,7 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
 
     Seq(
       stageTask / esbuildBundleScript := {
+        val configurationV = configuration.value
         val stageTaskReport = stageTask.value.data
         val electronProcessConfiguration =
           esbuildElectronProcessConfiguration.value
@@ -81,8 +102,9 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
           stageTaskReport,
           electronProcessConfiguration
         )
+        val mainModule = resolveMainModule(configurationV, stageTaskReport)
         val nodeEntryPointsJsArray =
-          (preloadModuleEntryPoints + mainModuleEntryPoint)
+          (preloadModuleEntryPoints + mainModuleEntryPoint + mainModule.jsFileName)
             .map("'" + _ + "'")
             .mkString("[", ",", "]")
         val rendererModuleEntryPointsJsArray = rendererModuleEntryPoints
@@ -108,7 +130,7 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
         val htmlEntryPointsJsArray =
           htmlEntryPoints.map("'" + _ + "'").mkString("[", ",", "]")
 
-        val minify = if (configuration.value == Test) {
+        val minify = if (configurationV == Test) {
           false
         } else {
           true

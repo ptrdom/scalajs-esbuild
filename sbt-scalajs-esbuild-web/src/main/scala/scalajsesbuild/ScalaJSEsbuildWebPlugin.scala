@@ -64,6 +64,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
             IO.read(targetDir / "sbt-scalajs-esbuild-bundle-meta.json")
           )
 
+        // TODO only pass main module - see `scalajsesbuild.jsEnvInputTask`
         jsFileNames(stageTask.value.data)
           .map { jsFileName =>
             metaJson

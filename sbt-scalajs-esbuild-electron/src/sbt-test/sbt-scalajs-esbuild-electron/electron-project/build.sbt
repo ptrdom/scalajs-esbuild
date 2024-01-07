@@ -28,3 +28,5 @@ Compile / esbuildElectronProcessConfiguration := new scalajsesbuild.EsbuildElect
 Compile / mainClass := None
 
 libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.2.0"
+
+libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.15" % "test"

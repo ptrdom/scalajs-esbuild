@@ -1,13 +1,15 @@
-$ absent vite/package-lock.json
+$ absent esbuild/package-lock.json
 > clean
-> fastLinkJS/startVite
-# TODO html test with selenium and electron-chromedriver
-> fastLinkJS/stopVite
-$ exists vite/package-lock.json
+> fastLinkJS/esbuildBundle
+> set Test/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
+> test
+# TODO IT test with Playwright
+$ exists esbuild/package-lock.json
 
-$ delete vite/package-lock.json
+$ delete esbuild/package-lock.json
 > clean
-> fullLinkJS/startVite
-# TODO html test with selenium and electron-chromedriver
-> fullLinkJS/stopVite
-$ exists vite/package-lock.json
+> fullLinkJS/esbuildBundle
+> set Test/scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt
+> test
+# TODO IT test with Playwright
+$ exists esbuild/package-lock.json

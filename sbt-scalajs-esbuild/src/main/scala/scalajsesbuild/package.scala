@@ -1,12 +1,14 @@
 import java.nio.file.Path
 
-import org.scalajs.jsenv.Input.Script
+import org.scalajs.jsenv.Input
+import org.scalajs.linker.interface.ModuleKind
 import org.scalajs.linker.interface.Report
 import org.scalajs.linker.interface.unstable
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fastLinkJS
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fullLinkJS
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
 import sbt.*
+import sbt.Keys.configuration
 import sbt.Keys.crossTarget
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFastLinkJSWrapper
@@ -120,16 +122,51 @@ package object scalajsesbuild {
     }
   }
 
+  private[scalajsesbuild] def resolveMainModule(
+      configuration: Configuration,
+      report: Report
+  ) = {
+    val expectedMainModuleIDs = Seq(
+      if (configuration == Test) {
+        Some("test-main")
+      } else {
+        None
+      },
+      Some("main")
+    ).flatten
+
+    expectedMainModuleIDs
+      .map(moduleID => report.publicModules.find(_.moduleID == moduleID))
+      .collectFirst { case Some(module) =>
+        module
+      }
+      .getOrElse(
+        sys.error(
+          s"Cannot determine `jsEnvInput`: Linking result does not have a " +
+            s"module named ${expectedMainModuleIDs.map("`" + _ + "`").mkString("or")}. Set jsEnvInput manually?\n" +
+            s"Full report:\n$report"
+        )
+      )
+  }
+
   private[scalajsesbuild] def jsEnvInputTask = Def.taskDyn {
     val stageTask = scalaJSStage.value.stageTask
     Def.task {
       (stageTask / esbuildBundle).value
 
-      jsFileNames(stageTask.value.data)
-        .map((stageTask / esbuildBundle / crossTarget).value / _)
-        .map(_.toPath)
-        .map(Script)
-        .toSeq
+      val configurationV = configuration.value
+      val report = stageTask.value.data
+      val mainModule = resolveMainModule(configurationV, report)
+
+      val path =
+        ((stageTask / esbuildBundle / crossTarget).value / mainModule.jsFileName).toPath
+      Seq(
+        mainModule.moduleKind match {
+          case ModuleKind.NoModule       => Input.Script(path)
+          case ModuleKind.ESModule       => Input.ESModule(path)
+          case ModuleKind.CommonJSModule => Input.CommonJSModule(path)
+        }
+      )
     }
   }
 }
