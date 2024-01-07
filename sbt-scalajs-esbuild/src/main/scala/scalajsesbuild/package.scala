@@ -160,13 +160,7 @@ package object scalajsesbuild {
 
       val path =
         ((stageTask / esbuildBundle / crossTarget).value / mainModule.jsFileName).toPath
-      Seq(
-        mainModule.moduleKind match {
-          case ModuleKind.NoModule       => Input.Script(path)
-          case ModuleKind.ESModule       => Input.ESModule(path)
-          case ModuleKind.CommonJSModule => Input.CommonJSModule(path)
-        }
-      )
+      Seq(Input.Script(path))
     }
   }
 }
