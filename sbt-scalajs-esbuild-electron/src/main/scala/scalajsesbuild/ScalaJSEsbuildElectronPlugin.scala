@@ -26,6 +26,8 @@ import scalajsesbuild.ScalaJSEsbuildWebPlugin.autoImport.esbuildBundleHtmlEntryP
 import scalajsesbuild.ScalaJSEsbuildWebPlugin.autoImport.esbuildServeScript
 import scalajsesbuild.electron.*
 
+import scala.sys.process.Process
+
 object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
 
   override def requires = ScalaJSEsbuildWebPlugin
@@ -80,7 +82,38 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
           }
         }
     },
-    jsEnvInput := jsEnvInputTask.value
+    jsEnvInput := jsEnvInputTask.value,
+    run := Def.taskDyn {
+      val stageTask = scalaJSStage.value.stageTask
+      Def.task {
+        (stageTask / esbuildBundle).value
+
+        val configurationV = configuration.value
+        val stageTaskReport = stageTask.value.data
+        val mainModule = resolveMainModule(configurationV, stageTaskReport)
+
+        val targetDirectory = (esbuildInstall / crossTarget).value
+        val outputDirectory =
+          (stageTask / esbuildBundle / crossTarget).value
+        val path =
+          targetDirectory
+            .relativize(new File(outputDirectory, mainModule.jsFileName))
+            .getOrElse(
+              sys.error(
+                s"Target directory [$targetDirectory] must be parent directory of output directory [$outputDirectory]"
+              )
+            )
+
+        val exitValue = Process(
+          "node" :: "./node_modules/electron/cli" :: path.toString :: Nil,
+          targetDirectory
+        ).run(streams.value.log)
+          .exitValue()
+        if (exitValue != 0) {
+          sys.error(s"Nonzero exit value: $exitValue")
+        }
+      }
+    }.value
   ) ++
     perScalaJSStageSettings(Stage.FastOpt) ++
     perScalaJSStageSettings(Stage.FullOpt)
@@ -154,9 +187,7 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
           |  false,
           |  $minify,
           |  'sbt-scalajs-esbuild-node-bundle-meta.json',
-          |  {
-          |    external: ['electron']
-          |  }
+          |  {external: ['electron']}
           |);
           |
           |const metaFilePromise = bundle(
