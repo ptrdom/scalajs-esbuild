@@ -1,5 +1,6 @@
 import java.nio.file.Path
 
+import org.scalajs.ir.Names.DefaultModuleID
 import org.scalajs.jsenv.Input
 import org.scalajs.linker.interface.ModuleKind
 import org.scalajs.linker.interface.Report
@@ -123,27 +124,14 @@ package object scalajsesbuild {
   }
 
   private[scalajsesbuild] def resolveMainModule(
-      configuration: Configuration,
       report: Report
   ) = {
-    val expectedMainModuleIDs = Seq(
-      if (configuration == Test) {
-        Some("test-main")
-      } else {
-        None
-      },
-      Some("main")
-    ).flatten
-
-    expectedMainModuleIDs
-      .map(moduleID => report.publicModules.find(_.moduleID == moduleID))
-      .collectFirst { case Some(module) =>
-        module
-      }
+    report.publicModules
+      .find(_.moduleID == DefaultModuleID)
       .getOrElse(
         sys.error(
-          s"Cannot determine `jsEnvInput`: Linking result does not have a " +
-            s"module named ${expectedMainModuleIDs.map("`" + _ + "`").mkString("or")}. Set jsEnvInput manually?\n" +
+          "Cannot determine `jsEnvInput`: Linking result does not have a " +
+            s"module named `$DefaultModuleID`. Set jsEnvInput manually?\n" +
             s"Full report:\n$report"
         )
       )
@@ -154,9 +142,8 @@ package object scalajsesbuild {
     Def.task {
       (stageTask / esbuildBundle).value
 
-      val configurationV = configuration.value
       val report = stageTask.value.data
-      val mainModule = resolveMainModule(configurationV, report)
+      val mainModule = resolveMainModule(report)
 
       val path =
         ((stageTask / esbuildBundle / crossTarget).value / mainModule.jsFileName).toPath

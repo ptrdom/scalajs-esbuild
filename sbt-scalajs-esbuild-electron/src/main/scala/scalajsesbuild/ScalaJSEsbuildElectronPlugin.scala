@@ -65,32 +65,14 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
 
   private lazy val perConfigSettings: Seq[Setting[?]] = Seq(
     esbuildScalaJSModuleConfigurations := Map.empty,
-    scalaJSModuleInitializers := {
-      scalaJSModuleInitializers.value
-        .map { moduleInitializer =>
-          moduleInitializer.initializer match {
-            case test
-                if test == ModuleInitializer
-                  .mainMethod(
-                    TestAdapterInitializer.ModuleClassName,
-                    TestAdapterInitializer.MainMethodName
-                  )
-                  .initializer =>
-              moduleInitializer.withModuleID("test-main")
-            case _ =>
-              moduleInitializer
-          }
-        }
-    },
     jsEnvInput := jsEnvInputTask.value,
     run := Def.taskDyn {
       val stageTask = scalaJSStage.value.stageTask
       Def.task {
         (stageTask / esbuildBundle).value
 
-        val configurationV = configuration.value
         val stageTaskReport = stageTask.value.data
-        val mainModule = resolveMainModule(configurationV, stageTaskReport)
+        val mainModule = resolveMainModule(stageTaskReport)
 
         val targetDirectory = (esbuildInstall / crossTarget).value
         val outputDirectory =
@@ -135,9 +117,8 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
           stageTaskReport,
           electronProcessConfiguration
         )
-        val mainModule = resolveMainModule(configurationV, stageTaskReport)
         val nodeEntryPointsJsArray =
-          (preloadModuleEntryPoints + mainModuleEntryPoint + mainModule.jsFileName)
+          (preloadModuleEntryPoints + mainModuleEntryPoint)
             .map("'" + _ + "'")
             .mkString("[", ",", "]")
         val rendererModuleEntryPointsJsArray = rendererModuleEntryPoints
