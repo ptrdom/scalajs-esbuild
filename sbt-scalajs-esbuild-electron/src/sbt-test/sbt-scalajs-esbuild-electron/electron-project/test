@@ -1,11 +1,11 @@
 $ absent app/esbuild/package-lock.json
 > clean
 > set app/Compile/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
-> integration-test
+> integration-test/test
 $ exists app/esbuild/package-lock.json
 
 $ delete app/esbuild/package-lock.json
 > clean
 > set app/Compile/scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt
-> integration-test
-$ exists esbuild/package-lock.json
+> integration-test/test
+$ exists app/esbuild/package-lock.json
