@@ -9,6 +9,7 @@
   "devDependencies": {
     "esbuild": "0.19.11",
     "jsdom": "22.1.0",
-    "electron": "28.1.0"
+    "electron": "28.1.0",
+    "playwright": "1.41.1"
   }
 }

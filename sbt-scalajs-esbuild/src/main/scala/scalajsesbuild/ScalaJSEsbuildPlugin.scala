@@ -196,6 +196,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
 
         installFileChanges ++ stageTaskFileChanges
       },
+      // TODO move out of `stageTask` scope
       stageTask / esbuildBundle / crossTarget := (esbuildInstall / crossTarget).value / "out",
       stageTask / esbuildBundleScript := {
         val stageTaskReport = stageTask.value.data

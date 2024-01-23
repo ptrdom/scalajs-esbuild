@@ -1,15 +1,11 @@
-$ absent esbuild/package-lock.json
+$ absent app/esbuild/package-lock.json
 > clean
-> fastLinkJS/esbuildBundle
-> set Test/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
-> test
-# TODO IT test with Playwright
-$ exists esbuild/package-lock.json
+> set app/Compile/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
+> integration-test
+$ exists app/esbuild/package-lock.json
 
-$ delete esbuild/package-lock.json
+$ delete app/esbuild/package-lock.json
 > clean
-> fullLinkJS/esbuildBundle
-> set Test/scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt
-> test
-# TODO IT test with Playwright
+> set app/Compile/scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt
+> integration-test
 $ exists esbuild/package-lock.json
