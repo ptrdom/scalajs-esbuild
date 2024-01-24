@@ -8,6 +8,6 @@
   },
   "devDependencies": {
     "esbuild": "0.19.12",
-    "jsdom": "23.2.0"
+    "jsdom": "24.0.0"
   }
 }
