@@ -64,30 +64,32 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
             IO.read(targetDir / "sbt-scalajs-esbuild-bundle-meta.json")
           )
 
-        // TODO only pass main module - see `scalajsesbuild.jsEnvInputTask`
-        jsFileNames(stageTask.value.data)
-          .map { jsFileName =>
-            metaJson
-              .get("outputs")
-              .asInstanceOf[JObject]
-              .vs
-              .collectFirst {
-                case (outputBundle, output)
-                    if output
-                      .asInstanceOf[JObject]
-                      .get("entryPoint")
-                      .getString
-                      .contains(jsFileName) =>
-                  outputBundle
-              }
-              .getOrElse(
-                sys.error(s"Output bundle not found for module [$jsFileName]")
-              )
+        val mainModule = resolveMainModule(stageTask.value.data)
+
+        val outputBundle = metaJson
+          .get("outputs")
+          .asInstanceOf[JObject]
+          .vs
+          .collectFirst {
+            case (outputBundle, output)
+                if output
+                  .asInstanceOf[JObject]
+                  .get("entryPoint")
+                  .getString
+                  .contains(mainModule.jsFileName) =>
+              outputBundle
           }
-          .map((stageTask / esbuildInstall / crossTarget).value / _)
-          .map(_.toPath)
-          .map(Script)
-          .toSeq
+          .getOrElse(
+            sys.error(
+              s"Output bundle not found for main module [${mainModule.moduleID}]"
+            )
+          )
+
+        Seq(
+          Script(
+            ((stageTask / esbuildInstall / crossTarget).value / outputBundle).toPath
+          )
+        )
       }
     }.value
   ) ++

@@ -23,7 +23,7 @@ object Main extends App {
     })
 
     // and load the index.html of the app.
-    process.env.VITE_DEV_SERVER_URL // TODO rename to SERVE_URL
+    process.env.DEV_SERVER_URL
       .asInstanceOf[js.UndefOr[String]]
       .toOption
       .fold(

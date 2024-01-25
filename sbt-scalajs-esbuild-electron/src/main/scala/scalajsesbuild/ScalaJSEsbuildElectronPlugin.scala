@@ -1,22 +1,14 @@
 package scalajsesbuild
 
-import java.nio.file.Path
-
-import org.scalajs.jsenv.Input.Script
 import org.scalajs.linker.interface.ModuleInitializer
-import org.scalajs.linker.interface.unstable.ModuleInitializerImpl
-import org.scalajs.linker.interface.unstable.ReportImpl
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.ModuleKind
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.jsEnvInput
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerConfig
-import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSMainModuleInitializer
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSModuleInitializers
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
 import org.scalajs.sbtplugin.Stage
-import org.scalajs.testing.adapter.TestAdapterInitializer
-import sbt.AutoPlugin
-import sbt.Plugins
 import sbt.*
+import sbt.AutoPlugin
 import sbt.Keys.*
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundleScript
@@ -24,6 +16,7 @@ import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildScalaJSModuleConfigurations
 import scalajsesbuild.ScalaJSEsbuildWebPlugin.autoImport.esbuildBundleHtmlEntryPoints
 import scalajsesbuild.ScalaJSEsbuildWebPlugin.autoImport.esbuildServeScript
+import scalajsesbuild.ScalaJSEsbuildWebPlugin.autoImport.esbuildServeStart
 import scalajsesbuild.electron.*
 
 import scala.sys.process.Process
@@ -192,7 +185,93 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
           |""".stripMargin
       },
       stageTask / esbuildServeScript := {
-        ???
+        val configurationV = configuration.value
+        val stageTaskReport = stageTask.value.data
+        val electronProcessConfiguration =
+          esbuildElectronProcessConfiguration.value
+        val (
+          mainModuleEntryPoint,
+          preloadModuleEntryPoints,
+          rendererModuleEntryPoints
+        ) = extractEntryPointsByProcess(
+          stageTaskReport,
+          electronProcessConfiguration
+        )
+        val mainModuleEntryPointJs = s"'$mainModuleEntryPoint'"
+        val preloadModuleEntryPointsJs =
+          preloadModuleEntryPoints
+            .map("'" + _ + "'")
+            .mkString("[", ",", "]")
+        val rendererModuleEntryPointsJsArray = rendererModuleEntryPoints
+          .map("'" + _ + "'")
+          .mkString("[", ",", "]")
+        val targetDirectory = (esbuildInstall / crossTarget).value
+        val nodeRelativeOutputDirectoryJs = {
+          val outputDirectory =
+            (stageTask / esbuildBundle / crossTarget).value
+          val nodeRelativeOutputDirectory = targetDirectory
+            .relativize(outputDirectory)
+            .getOrElse(
+              sys.error(
+                s"Target directory [$targetDirectory] must be parent directory of node output directory [$outputDirectory]"
+              )
+            )
+          s"'$nodeRelativeOutputDirectory'"
+        }
+        val rendererRelativeOutputDirectoryJs = {
+          val outputDirectory =
+            (stageTask / esbuildServeStart / crossTarget).value
+          val relativeOutputDirectory =
+            targetDirectory
+              .relativize(outputDirectory)
+              .getOrElse(
+                sys.error(
+                  s"Target directory [$targetDirectory] must be parent directory of renderer output directory [$outputDirectory]"
+                )
+              )
+          s"'$relativeOutputDirectory'"
+        }
+        val htmlEntryPoints = esbuildBundleHtmlEntryPoints.value
+        require(
+          !htmlEntryPoints.forall(_.isAbsolute),
+          "HTML entry point paths must be relative"
+        )
+        val htmlEntryPointsJsArray =
+          htmlEntryPoints.map("'" + _ + "'").mkString("[", ",", "]")
+
+        // language=JS
+        s"""
+           |${EsbuildScripts.esbuildOptions}
+           |
+           |${EsbuildScripts.bundle}
+           |
+           |${EsbuildWebScripts.htmlTransform}
+           |
+           |${EsbuildWebScripts.esbuildLiveReload}
+           |
+           |${EsbuildWebScripts.serve}
+           |
+           |${electron.Scripts.electronServe}
+           |
+           |serve(
+           |  $rendererModuleEntryPointsJsArray,
+           |  $rendererRelativeOutputDirectoryJs,
+           |  'assets',
+           |  'sbt-scalajs-esbuild-renderer-bundle-meta.json',
+           |  8001,
+           |  8000,
+           |  $htmlEntryPointsJsArray
+           |)
+           |  .then((reloadEventEmitter) => {
+           |    electronServe(
+           |      reloadEventEmitter,
+           |      8000,
+           |      $mainModuleEntryPointJs,
+           |      $preloadModuleEntryPointsJs,
+           |      $nodeRelativeOutputDirectoryJs
+           |    );
+           |  });
+           |""".stripMargin
       }
     )
   }

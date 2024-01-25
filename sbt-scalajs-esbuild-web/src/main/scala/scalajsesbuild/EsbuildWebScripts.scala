@@ -67,6 +67,7 @@ object EsbuildWebScripts {
       |""".stripMargin
   }
 
+  // TODO make dev server return this as a script to fix CSP issue in Electron plugin
   private[scalajsesbuild] def esbuildLiveReload = {
     // language=JS
     """const esbuildLiveReload = (
@@ -77,14 +78,15 @@ object EsbuildWebScripts {
        |    .replace("</head>", `
        |      <script type="text/javascript">
        |        // Based on https://esbuild.github.io/api/#live-reload
-       |        new EventSource('/esbuild').addEventListener('change', e => {
+       |        const eventSource = new EventSource('/esbuild')
+       |        eventSource.addEventListener('change', e => {
        |          const { added, removed, updated } = JSON.parse(e.data)
        |
        |          if (!added.length && !removed.length && updated.length === 1) {
        |            for (const link of document.getElementsByTagName('link')) {
        |              const url = new URL(link.href)
        |
-       |              if (url.host === location.host && url.pathname === upd ated[0]) {
+       |              if (url.host === location.host && url.pathname === updated[0]) {
        |                const next = link.cloneNode()
        |                next.href = updated[0] + '?' + Math.random().toString(36).slice(2)
        |                next.onload = () => link.remove()
@@ -95,7 +97,10 @@ object EsbuildWebScripts {
        |          }
        |
        |          location.reload()
-       |        })
+       |        });
+       |        eventSource.addEventListener('reload', () => {
+       |          location.reload();
+       |        });
        |      </script>
        |    </head>
        |    `);
