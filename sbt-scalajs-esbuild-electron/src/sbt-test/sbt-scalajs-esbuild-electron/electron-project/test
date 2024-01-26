@@ -15,3 +15,15 @@ $ delete app/esbuild/package-lock.json
 # TODO figure out how to test if dev mode works
 > app/fullLinkJS/esbuildServeStop
 $ exists app/esbuild/package-lock.json
+
+$ delete app/esbuild/package-lock.json
+> clean
+> app/fastLinkJS/viteElectronBuildPackage
+> app/fastLinkJS/viteElectronBuildDistributable
+$ exists app/esbuild/package-lock.json
+
+$ delete app/esbuild/package-lock.json
+> clean
+> app/fullLinkJS/viteElectronBuildPackage
+> app/fullLinkJS/viteElectronBuildDistributable
+$ exists app/esbuild/package-lock.json
