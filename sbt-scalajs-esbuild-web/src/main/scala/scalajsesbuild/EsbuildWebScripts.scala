@@ -76,32 +76,7 @@ object EsbuildWebScripts {
        |  return htmlString
        |    .toString()
        |    .replace("</head>", `
-       |      <script type="text/javascript">
-       |        // Based on https://esbuild.github.io/api/#live-reload
-       |        const eventSource = new EventSource('/esbuild')
-       |        eventSource.addEventListener('change', e => {
-       |          const { added, removed, updated } = JSON.parse(e.data)
-       |
-       |          if (!added.length && !removed.length && updated.length === 1) {
-       |            for (const link of document.getElementsByTagName('link')) {
-       |              const url = new URL(link.href)
-       |
-       |              if (url.host === location.host && url.pathname === updated[0]) {
-       |                const next = link.cloneNode()
-       |                next.href = updated[0] + '?' + Math.random().toString(36).slice(2)
-       |                next.onload = () => link.remove()
-       |                link.parentNode.insertBefore(next, link.nextSibling)
-       |                return
-       |              }
-       |            }
-       |          }
-       |
-       |          location.reload()
-       |        });
-       |        eventSource.addEventListener('reload', () => {
-       |          location.reload();
-       |        });
-       |      </script>
+       |      <script type="text/javascript" src="/@dev-server/live-reload"></script>
        |    </head>
        |    `);
        |}
@@ -210,6 +185,34 @@ object EsbuildWebScripts {
       |              res.writeHead(404);
       |              res.end('HTML file ['+htmlFilePath+'] not found');
       |            }
+      |          } else if (path === '/@dev-server/live-reload'){
+      |            res.writeHead(200);
+      |            res.end(`
+      |              // Based on https://esbuild.github.io/api/#live-reload
+      |              const eventSource = new EventSource('/esbuild')
+      |              eventSource.addEventListener('change', e => {
+      |                const { added, removed, updated } = JSON.parse(e.data)
+      |
+      |                if (!added.length && !removed.length && updated.length === 1) {
+      |                  for (const link of document.getElementsByTagName('link')) {
+      |                    const url = new URL(link.href)
+      |
+      |                    if (url.host === location.host && url.pathname === updated[0]) {
+      |                      const next = link.cloneNode()
+      |                      next.href = updated[0] + '?' + Math.random().toString(36).slice(2)
+      |                      next.onload = () => link.remove()
+      |                      link.parentNode.insertBefore(next, link.nextSibling)
+      |                      return
+      |                    }
+      |                  }
+      |                }
+      |
+      |                location.reload()
+      |              });
+      |              eventSource.addEventListener('reload', () => {
+      |                location.reload();
+      |              });
+      |            `);
       |          } else {
       |            const proxyReq = http.request(options, (proxyRes) => {
       |              if (proxyRes.statusCode === 404 && !multipleEntryPointsFound) {
