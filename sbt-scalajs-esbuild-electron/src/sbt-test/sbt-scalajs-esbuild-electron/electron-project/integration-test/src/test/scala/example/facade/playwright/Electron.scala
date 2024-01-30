@@ -1,5 +1,7 @@
 package example.facade.playwright
 
+import example.facade.electron
+
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
 
@@ -26,6 +28,10 @@ trait Window extends js.Object {
   def title(): js.Promise[String] = js.native
 
   def screenshot(config: ScreenshotConfig): js.Promise[js.Dynamic]
+
+  def isVisible(selector: String): js.Promise[Boolean]
+
+  def evaluate[T](pageFunction: String): js.Promise[T]
 }
 
 trait ScreenshotConfig extends js.Object {

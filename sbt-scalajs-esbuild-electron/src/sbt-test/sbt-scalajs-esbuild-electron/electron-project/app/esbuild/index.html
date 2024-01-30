@@ -3,10 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
-    <!--
-    This is imported in renderer.js
-    <link href="./styles.css" rel="stylesheet">
-    -->
     <title>Hello World!</title>
   </head>
   <body>
@@ -17,5 +13,7 @@
 
     <!-- You can also require other files to run in this process -->
     <script type="module" src="./renderer.js"></script>
+
+    <h1 id="css-hook"></h1>
   </body>
 </html>

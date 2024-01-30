@@ -1,7 +1,7 @@
 package example
 
 import example.facade.node.NodeGlobals.process
-import org.scalajs.dom.Event
+import org.scalajs.dom
 import org.scalajs.dom.document
 import org.scalajs.dom.window
 
@@ -15,7 +15,7 @@ import scala.scalajs.js
 object Preload extends App {
   window.addEventListener(
     "DOMContentLoaded",
-    (_ => {
+    { (_: dom.Event) =>
       val replaceText = (selector: String, text: String) => {
         val element = document.getElementById(selector)
         if (element != null) element.innerText = text
@@ -28,6 +28,15 @@ object Preload extends App {
             process.versions.get(`type`).orNull
           )
         )
-    }): js.Function1[Event, Unit]
+    }
+  )
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    { (_: dom.Event) =>
+      val h1 = document.createElement("h1")
+      h1.textContent = "PRELOAD WORKS!"
+      document.body.append(h1)
+    }
   )
 }

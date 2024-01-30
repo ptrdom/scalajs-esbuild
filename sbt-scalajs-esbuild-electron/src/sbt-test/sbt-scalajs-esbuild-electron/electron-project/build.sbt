@@ -110,3 +110,4 @@ lazy val `integration-test` = (project in file("integration-test"))
     }.value,
     libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.15" % "test"
   )
+  .dependsOn(app)
