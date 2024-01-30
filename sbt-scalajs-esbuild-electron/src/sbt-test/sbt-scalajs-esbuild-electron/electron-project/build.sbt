@@ -5,7 +5,7 @@ import scalajsesbuild.EsbuildElectronProcessConfiguration
 import scala.sys.process._
 
 lazy val root = (project in file("."))
-  .aggregate(app, `integration-test`)
+  .aggregate(app, `integration-test`, `integration-test-selenium-jvm`)
 
 ThisBuild / scalaVersion := "2.13.8"
 
@@ -70,6 +70,27 @@ lazy val app = (project in file("app"))
         )
       }
   )
+
+lazy val `integration-test-selenium-jvm` =
+  (project in file("integration-test-selenium-jvm"))
+    .settings(
+      Test / test := (Test / test).dependsOn {
+        Def.taskDyn {
+          val stageTask = (app / Compile / scalaJSStage).value match {
+            case Stage.FastOpt => fastLinkJS
+            case Stage.FullOpt => fullLinkJS
+          }
+          Def.task {
+            (((app / Compile) / stageTask) / esbuildBundle).value
+          }
+        }
+      }.value,
+      libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.15" % "test",
+      libraryDependencies ++= Seq(
+        "org.scalatestplus" %% "selenium-4-7" % "3.2.15.0" % "test",
+        "org.seleniumhq.selenium" % "selenium-java" % "4.16.1" % "test"
+      ) // should be upgraded when Electron upgrades its chromium version
+    )
 
 lazy val `integration-test` = (project in file("integration-test"))
   .enablePlugins(ScalaJSPlugin)
