@@ -1,6 +1,7 @@
 package example
 
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Paths
 
 import org.openqa.selenium.WebDriver
@@ -58,10 +59,12 @@ class SeleniumSpec extends AnyFreeSpec with Matchers {
   )
 
   "Work" in {
+    val userDataDir =
+      Files.createTempDirectory("electron-app-user-data-directory")
     val process = Process(
-      "node" :: "./node_modules/electron/cli" :: "./out/main.js" :: s"--remote-debugging-port=$debugPort" :: "--remote-allow-origins=*" :: Nil,
+      "node" :: "./node_modules/electron/cli" :: "./out/main.js" :: s"--remote-debugging-port=$debugPort" :: "--remote-allow-origins=*" :: s"--user-data-dir=${userDataDir.toAbsolutePath}" :: Nil,
       targetDirectory
-    ).run(ProcessLogger(log => println(log)))
+    ).run
     try {
       val options = new ChromeOptions()
       options.addArguments("--remote-allow-origins=*")
