@@ -51,8 +51,13 @@ class SeleniumSpec extends AnyFreeSpec with Matchers {
     "webdriver.chrome.driver",
     Paths
       .get(
-        targetDirectory.getAbsolutePath,
-        "node_modules/electron-chromedriver/bin/chromedriver.exe"
+        targetDirectory.getAbsolutePath, {
+          val extension =
+            if (System.getProperty("os.name").toLowerCase.contains("win"))
+              ".exe"
+            else ""
+          s"node_modules/electron-chromedriver/bin/chromedriver$extension"
+        }
       )
       .normalize()
       .toString
