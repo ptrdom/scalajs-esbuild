@@ -5,7 +5,11 @@ import scalajsesbuild.EsbuildElectronProcessConfiguration
 import scala.sys.process._
 
 lazy val root = (project in file("."))
-  .aggregate(app, `integration-test`, `integration-test-selenium-jvm`)
+  .aggregate(
+    app,
+    `integration-test-playwright-node`,
+    `integration-test-selenium-jvm`
+  )
 
 ThisBuild / scalaVersion := "2.13.8"
 
@@ -92,43 +96,44 @@ lazy val `integration-test-selenium-jvm` =
       ) // should be upgraded when Electron upgrades its chromium version
     )
 
-lazy val `integration-test` = (project in file("integration-test"))
-  .enablePlugins(ScalaJSPlugin)
-  .settings(
-    scalaJSLinkerConfig ~= {
-      _.withModuleKind(ModuleKind.CommonJSModule)
-    },
-    Test / jsEnv := Def.taskDyn {
-      val stageTask = (app / Compile / scalaJSStage).value match {
-        case Stage.FastOpt => fastLinkJS
-        case Stage.FullOpt => fullLinkJS
-      }
+lazy val `integration-test-playwright-node` =
+  (project in file("integration-test-playwright-node"))
+    .enablePlugins(ScalaJSPlugin)
+    .settings(
+      scalaJSLinkerConfig ~= {
+        _.withModuleKind(ModuleKind.CommonJSModule)
+      },
+      Test / jsEnv := Def.taskDyn {
+        val stageTask = (app / Compile / scalaJSStage).value match {
+          case Stage.FastOpt => fastLinkJS
+          case Stage.FullOpt => fullLinkJS
+        }
 
-      Def.task {
-        (((app / Compile) / stageTask) / esbuildBundle).value
+        Def.task {
+          (((app / Compile) / stageTask) / esbuildBundle).value
 
-        val sourcesDirectory =
-          (((app / Compile) / esbuildInstall) / crossTarget).value
-        val outputDirectory =
-          ((((app / Compile) / stageTask) / esbuildBundle) / crossTarget).value
-        val mainModuleID =
-          ((app / Compile) / esbuildElectronProcessConfiguration).value.mainModuleID
+          val sourcesDirectory =
+            (((app / Compile) / esbuildInstall) / crossTarget).value
+          val outputDirectory =
+            ((((app / Compile) / stageTask) / esbuildBundle) / crossTarget).value
+          val mainModuleID =
+            ((app / Compile) / esbuildElectronProcessConfiguration).value.mainModuleID
 
-        val nodePath = (sourcesDirectory / "node_modules").absolutePath
-        val mainPath = (outputDirectory / s"$mainModuleID.js").absolutePath
+          val nodePath = (sourcesDirectory / "node_modules").absolutePath
+          val mainPath = (outputDirectory / s"$mainModuleID.js").absolutePath
 
-        new NodeJSEnv(
-          NodeJSEnv
-            .Config()
-            .withEnv(
-              Map(
-                "NODE_PATH" -> nodePath,
-                "MAIN_PATH" -> mainPath
+          new NodeJSEnv(
+            NodeJSEnv
+              .Config()
+              .withEnv(
+                Map(
+                  "NODE_PATH" -> nodePath,
+                  "MAIN_PATH" -> mainPath
+                )
               )
-            )
-        )
-      }
-    }.value,
-    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.15" % "test"
-  )
-  .dependsOn(app)
+          )
+        }
+      }.value,
+      libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.15" % "test"
+    )
+    .dependsOn(app)

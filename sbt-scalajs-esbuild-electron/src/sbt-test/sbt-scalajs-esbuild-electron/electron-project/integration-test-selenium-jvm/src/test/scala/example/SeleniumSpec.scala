@@ -62,7 +62,13 @@ class SeleniumSpec extends AnyFreeSpec with Matchers {
     val userDataDir =
       Files.createTempDirectory("electron-app-user-data-directory")
     val process = Process(
-      "node" :: "./node_modules/electron/cli" :: "./out/main.js" :: s"--remote-debugging-port=$debugPort" :: "--remote-allow-origins=*" :: s"--user-data-dir=${userDataDir.toAbsolutePath}" :: Nil,
+      "node" ::
+        "./node_modules/electron/cli" ::
+        "./out/main.js" ::
+        s"--remote-debugging-port=$debugPort" ::
+        "--remote-allow-origins=*" ::
+        s"--user-data-dir=${userDataDir.toAbsolutePath}" ::
+        Nil,
       targetDirectory
     ).run
     try {
