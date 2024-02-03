@@ -10,7 +10,8 @@ object EsbuildScripts {
       |  outDirectory,
       |  outputFilesDirectory,
       |  hashOutputFiles,
-      |  minify
+      |  minify,
+      |  additionalOptions
       |) => {
       |  const path = require('path');
       |
@@ -86,7 +87,8 @@ object EsbuildScripts {
       |      ),
       |    loader: knownAssetTypes.reduce((a, b) => ({...a, [`.${b}`]: `file`}), {}),
       |    ...minifyOption,
-      |    ...publicPathOption
+      |    ...publicPathOption,
+      |    ...(additionalOptions ? additionalOptions : {})
       |  };
       |}
       |""".stripMargin
@@ -101,7 +103,8 @@ object EsbuildScripts {
       |  outputFilesDirectory,
       |  hashOutputFiles,
       |  minify,
-      |  metaFileName
+      |  metaFileName,
+      |  additionalEsbuildOptions
       |) => {
       |  const esbuild = require('esbuild');
       |  const fs = require('fs');
@@ -113,7 +116,8 @@ object EsbuildScripts {
       |      outDirectory,
       |      outputFilesDirectory,
       |      hashOutputFiles,
-      |      minify
+      |      minify,
+      |      additionalEsbuildOptions
       |    )
       |  );
       |

@@ -86,7 +86,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
   private lazy val perConfigSettings: Seq[Setting[?]] = Seq(
     esbuildScalaJSModuleConfigurations := {
       val moduleKind = scalaJSLinkerConfig.value.moduleKind
-      val esbuildModuleConfiguration = new EsbuildScalaJSModuleConfiguration(
+      val scalaJSModuleConfiguration = new EsbuildScalaJSModuleConfiguration(
         platform = moduleKind match {
           case ModuleKind.CommonJSModule =>
             EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Node
@@ -96,7 +96,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       )
       val modules = scalaJSModuleInitializers.value
       modules
-        .map(module => module.moduleID -> esbuildModuleConfiguration)
+        .map(module => module.moduleID -> scalaJSModuleConfiguration)
         .toMap
     },
     esbuildInstall / crossTarget := {
@@ -153,18 +153,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
 
       changeStatus
     },
-    jsEnvInput := Def.taskDyn {
-      val stageTask = scalaJSStage.value.stageTask
-      Def.task {
-        (stageTask / esbuildBundle).value
-
-        jsFileNames(stageTask.value.data)
-          .map((stageTask / esbuildBundle / crossTarget).value / _)
-          .map(_.toPath)
-          .map(Script)
-          .toSeq
-      }
-    }.value,
+    jsEnvInput := jsEnvInputTask.value,
     esbuildFastLinkJSWrapper := {
       fastLinkJS.value
       FileTreeView.default
@@ -207,6 +196,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
 
         installFileChanges ++ stageTaskFileChanges
       },
+      // TODO move out of `stageTask` scope
       stageTask / esbuildBundle / crossTarget := (esbuildInstall / crossTarget).value / "out",
       stageTask / esbuildBundleScript := {
         val stageTaskReport = stageTask.value.data

@@ -1,9 +1,17 @@
 import java.nio.file.Path
+
+import org.scalajs.ir.Names.DefaultModuleID
+import org.scalajs.jsenv.Input
+import org.scalajs.linker.interface.ModuleKind
 import org.scalajs.linker.interface.Report
 import org.scalajs.linker.interface.unstable
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fastLinkJS
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fullLinkJS
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
 import sbt.*
+import sbt.Keys.configuration
+import sbt.Keys.crossTarget
+import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFastLinkJSWrapper
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFullLinkJSWrapper
 
@@ -112,6 +120,34 @@ package object scalajsesbuild {
         modified = fileChanges.modified ++ that.modified,
         unmodified = fileChanges.unmodified ++ that.unmodified
       )
+    }
+  }
+
+  private[scalajsesbuild] def resolveMainModule(
+      report: Report
+  ) = {
+    report.publicModules
+      .find(_.moduleID == DefaultModuleID)
+      .getOrElse(
+        sys.error(
+          "Cannot determine `jsEnvInput`: Linking result does not have a " +
+            s"module named `$DefaultModuleID`. Set jsEnvInput manually?\n" +
+            s"Full report:\n$report"
+        )
+      )
+  }
+
+  private[scalajsesbuild] def jsEnvInputTask = Def.taskDyn {
+    val stageTask = scalaJSStage.value.stageTask
+    Def.task {
+      (stageTask / esbuildBundle).value
+
+      val report = stageTask.value.data
+      val mainModule = resolveMainModule(report)
+
+      val path =
+        ((stageTask / esbuildBundle / crossTarget).value / mainModule.jsFileName).toPath
+      Seq(Input.Script(path))
     }
   }
 }
