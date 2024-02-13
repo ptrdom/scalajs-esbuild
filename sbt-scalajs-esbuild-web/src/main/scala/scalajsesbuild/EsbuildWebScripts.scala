@@ -4,14 +4,14 @@ object EsbuildWebScripts {
 
   private[scalajsesbuild] def htmlTransform = {
     // language=JS
-    """const htmlTransform = (
+    """
+      |const htmlTransform = (
       |  htmlString,
       |  outDirectory,
       |  meta
       |) => {
       |  const path = require('path');
-      |  const jsdom = require("jsdom")
-      |  const { JSDOM } = jsdom;
+      |  const parse5 = require("parse5");
       |
       |  if (!meta.outputs) {
       |    throw new Error('Meta file missing output metadata');
@@ -21,31 +21,55 @@ object EsbuildWebScripts {
       |
       |  const toHtmlPath = (filePath) => filePath.split(path.sep).join(path.posix.sep);
       |
-      |  const dom = new JSDOM(htmlString);
-      |  dom.window.document.querySelectorAll("script").forEach((el) => {
-      |    let output;
-      |    let outputBundle;
-      |    Object.keys(meta.outputs).every((key) => {
-      |      const maybeOutput = meta.outputs[key];
-      |      if (el.src.endsWith(maybeOutput.entryPoint)) {
-      |        output = maybeOutput;
-      |        outputBundle = key;
-      |        return false;
+      |  const html = parse5.parse(htmlString.toString());
+      |
+      |  const walkHtml = (node) => {
+      |    (node.childNodes ? node.childNodes : []).forEach((childNode, idx, theseChildNodes) => {
+      |      if (childNode.tagName === 'script') {
+      |        const srcAttr = childNode.attrs.find((attr) => attr.name === 'src');
+      |        if (srcAttr) {
+      |          let output;
+      |          let outputBundle;
+      |          Object.keys(meta.outputs).every((key) => {
+      |            const maybeOutput = meta.outputs[key];
+      |            if (srcAttr.value.endsWith(maybeOutput.entryPoint)) {
+      |              output = maybeOutput;
+      |              outputBundle = key;
+      |              return false;
+      |            }
+      |            return true;
+      |          });
+      |          if (output) {
+      |            srcAttr.value = toHtmlPath(srcAttr.value.replace(output.entryPoint, path.relative(outDirectory, path.join(workingDirectory, outputBundle))));
+      |            if (output.cssBundle) {
+      |              const absolute = srcAttr.value.startsWith("/");
+      |              const link = {
+      |                tagName: 'link',
+      |                namespaceURI: parse5.html.NS['HTML'],
+      |                attrs: [
+      |                  {
+      |                    name: 'rel',
+      |                    value: 'stylesheet'
+      |                  },
+      |                  {
+      |                    name: 'href',
+      |                    value: (absolute ? "/" : "") + toHtmlPath(path.relative(outDirectory, path.join(workingDirectory, output.cssBundle)))
+      |                  }
+      |                ]
+      |              }
+      |              theseChildNodes.splice(idx + 1, 0, link);
+      |            }
+      |          }
+      |        }
       |      }
-      |      return true;
+      |      if (childNode.childNodes) {
+      |        walkHtml(childNode);
+      |      }
       |    })
-      |    if (output) {
-      |     let absolute = el.src.startsWith("/");
-      |     el.src = toHtmlPath(el.src.replace(output.entryPoint, path.relative(outDirectory, path.join(workingDirectory, outputBundle))));
-      |     if (output.cssBundle) {
-      |       const link = dom.window.document.createElement("link");
-      |       link.rel = "stylesheet";
-      |       link.href = (absolute ? "/" : "") + toHtmlPath(path.relative(outDirectory, path.join(workingDirectory, output.cssBundle)));
-      |       el.parentNode.insertBefore(link, el.nextSibling);
-      |     }
-      |    }
-      |  });
-      |  return dom.serialize();
+      |  };
+      |  walkHtml(html);
+      |
+      |  return parse5.serialize(html);
       |}""".stripMargin
   }
 
