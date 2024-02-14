@@ -13,7 +13,6 @@ import sbt.Keys.*
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundleScript
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildScalaJSModuleConfigurations
 import scalajsesbuild.ScalaJSEsbuildWebPlugin.autoImport.esbuildBundleHtmlEntryPoints
 import scalajsesbuild.ScalaJSEsbuildWebPlugin.autoImport.esbuildServeScript
 import scalajsesbuild.ScalaJSEsbuildWebPlugin.autoImport.esbuildServeStart
@@ -57,7 +56,6 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
       inConfig(Test)(perConfigSettings)
 
   private lazy val perConfigSettings: Seq[Setting[?]] = Seq(
-    esbuildScalaJSModuleConfigurations := Map.empty,
     jsEnvInput := jsEnvInputTask.value,
     run := Def.taskDyn {
       val stageTask = scalaJSStage.value.stageTask
@@ -154,7 +152,7 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
           |${EsbuildWebScripts.transformHtmlEntryPoints}
           |
           |bundle(
-          |  ${EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Node.jsValue},
+          |  ${EsbuildPlatform.Node.jsValue},
           |  $nodeEntryPointsJsArray,
           |  $relativeOutputDirectoryJs,
           |  null,
@@ -165,7 +163,7 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
           |);
           |
           |const metaFilePromise = bundle(
-          |  ${EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser.jsValue},
+          |  ${EsbuildPlatform.Browser.jsValue},
           |  $rendererModuleEntryPointsJsArray,
           |  $relativeOutputDirectoryJs,
           |  'assets',

@@ -16,7 +16,6 @@ import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundleScript
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildCompile
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildRunner
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildScalaJSModuleConfigurations
 import java.nio.file.Path
 
 import scala.sys.process.*
@@ -110,13 +109,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
     Seq(
       stageTask / esbuildBundleScript := {
         val stageTaskReport = stageTask.value.data
-        val moduleConfigurations = esbuildScalaJSModuleConfigurations.value
-        val entryPoints =
-          extractEntryPointsByPlatform(stageTaskReport, moduleConfigurations)
-            .getOrElse(
-              EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser,
-              Set.empty
-            )
+        val entryPoints = jsFileNames(stageTaskReport)
         val entryPointsJsArray =
           entryPoints.map("'" + _ + "'").mkString("[", ",", "]")
         val targetDirectory = (esbuildInstall / crossTarget).value
@@ -156,7 +149,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
            |${EsbuildWebScripts.transformHtmlEntryPoints}
            |
            |const metaFilePromise = bundle(
-           |  ${EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser.jsValue},
+           |  ${EsbuildPlatform.Browser.jsValue},
            |  $entryPointsJsArray,
            |  $relativeOutputDirectoryJs,
            |  'assets',
@@ -177,13 +170,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
       },
       stageTask / esbuildServeScript := {
         val stageTaskReport = stageTask.value.data
-        val moduleConfigurations = esbuildScalaJSModuleConfigurations.value
-        val entryPoints =
-          extractEntryPointsByPlatform(stageTaskReport, moduleConfigurations)
-            .getOrElse(
-              EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser,
-              Set.empty
-            )
+        val entryPoints = jsFileNames(stageTaskReport)
         val entryPointsJsArray =
           entryPoints.map("'" + _ + "'").mkString("[", ",", "]")
         val targetDirectory = (esbuildInstall / crossTarget).value

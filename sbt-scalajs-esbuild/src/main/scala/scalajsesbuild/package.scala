@@ -9,7 +9,6 @@ import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fastLinkJS
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fullLinkJS
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
 import sbt.*
-import sbt.Keys.configuration
 import sbt.Keys.crossTarget
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFastLinkJSWrapper
@@ -34,44 +33,10 @@ package object scalajsesbuild {
     }
   }
 
-  private[scalajsesbuild] def extractEntryPointsByPlatform(
-      report: Report,
-      moduleConfigurations: Map[String, EsbuildScalaJSModuleConfiguration]
-  ) = {
-    report match {
-      case report: unstable.ReportImpl =>
-        report.publicModules
-          .foldLeft(
-            Map.empty[EsbuildScalaJSModuleConfiguration.EsbuildPlatform, Set[
-              String
-            ]]
-          ) { case (acc, publicModule) =>
-            val platform = moduleConfigurations
-              .getOrElse(
-                publicModule.moduleID,
-                sys.error(
-                  s"esbuild module configuration missing for moduleID [${publicModule.moduleID}]"
-                )
-              )
-              .platform
-            acc.updated(
-              platform,
-              acc.getOrElse(platform, Set.empty) + publicModule.jsFileName
-            )
-          }
-      case unhandled =>
-        sys.error(s"Unhandled report type [$unhandled]")
-    }
-  }
-
   private[scalajsesbuild] def jsFileNames(report: Report) = {
     report match {
       case report: unstable.ReportImpl =>
-        val jsFileNames = report.publicModules
-          .map { publicModule =>
-            publicModule.jsFileName
-          }
-        jsFileNames
+        report.publicModules.map(publicModule => publicModule.jsFileName).toSet
       case unhandled =>
         sys.error(s"Unhandled report type [$unhandled]")
     }
@@ -148,6 +113,21 @@ package object scalajsesbuild {
       val path =
         ((stageTask / esbuildBundle / crossTarget).value / mainModule.jsFileName).toPath
       Seq(Input.Script(path))
+    }
+  }
+
+  private[scalajsesbuild] sealed trait EsbuildPlatform {
+    def jsValue: String = s"'${toString.toLowerCase}'"
+  }
+  private[scalajsesbuild] object EsbuildPlatform {
+    case object Browser extends EsbuildPlatform
+    case object Node extends EsbuildPlatform
+
+    def apply(moduleKind: ModuleKind): EsbuildPlatform = {
+      moduleKind match {
+        case ModuleKind.CommonJSModule => Node
+        case _                         => Browser
+      }
     }
   }
 }
