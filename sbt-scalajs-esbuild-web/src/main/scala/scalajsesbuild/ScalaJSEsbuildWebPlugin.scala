@@ -91,6 +91,14 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
           )
         )
       }
+    }.value,
+    esbuildServeStart := Def.taskDyn {
+      val stageTask = scalaJSStage.value.stageTask
+      Def.task((stageTask / esbuildServeStart).value)
+    }.value,
+    esbuildServeStop := Def.taskDyn {
+      val stageTask = scalaJSStage.value.stageTask
+      Def.task((stageTask / esbuildServeStop).value)
     }.value
   ) ++
     perScalaJSStageSettings(Stage.FastOpt) ++
