@@ -150,7 +150,15 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         .map { case (path, _) =>
           path
         }
-    }
+    },
+    esbuildCompile := Def.taskDyn {
+      val stageTask = scalaJSStage.value.stageTask
+      Def.task((stageTask / esbuildCompile).value)
+    }.value,
+    esbuildBundle := Def.taskDyn {
+      val stageTask = scalaJSStage.value.stageTask
+      Def.task((stageTask / esbuildBundle).value)
+    }.value
   ) ++
     perScalaJSStageSettings(Stage.FastOpt) ++
     perScalaJSStageSettings(Stage.FullOpt)
