@@ -42,10 +42,6 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       taskKey(
         "Compiles module and copies output to target directory"
       )
-    val esbuildScalaJSModuleConfigurations
-        : TaskKey[Map[String, EsbuildScalaJSModuleConfiguration]] = taskKey(
-      "esbuild configurations for Scala.js modules"
-    )
     val esbuildBundleScript: TaskKey[String] = taskKey(
       "esbuild script used for bundling"
     ) // TODO consider doing the writing of the script upon call of this task, then use FileChanges to track changes to the script
@@ -84,21 +80,6 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
     inConfig(Test)(perConfigSettings)
 
   private lazy val perConfigSettings: Seq[Setting[?]] = Seq(
-    esbuildScalaJSModuleConfigurations := {
-      val moduleKind = scalaJSLinkerConfig.value.moduleKind
-      val scalaJSModuleConfiguration = new EsbuildScalaJSModuleConfiguration(
-        platform = moduleKind match {
-          case ModuleKind.CommonJSModule =>
-            EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Node
-          case _ =>
-            EsbuildScalaJSModuleConfiguration.EsbuildPlatform.Browser
-        }
-      )
-      val modules = scalaJSModuleInitializers.value
-      modules
-        .map(module => module.moduleID -> scalaJSModuleConfiguration)
-        .toMap
-    },
     esbuildInstall / crossTarget := {
       crossTarget.value /
         "esbuild" /
@@ -200,13 +181,9 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       stageTask / esbuildBundle / crossTarget := (esbuildInstall / crossTarget).value / "out",
       stageTask / esbuildBundleScript := {
         val stageTaskReport = stageTask.value.data
-        val moduleConfigurations = esbuildScalaJSModuleConfigurations.value
-        val entryPointsByPlatform =
-          extractEntryPointsByPlatform(stageTaskReport, moduleConfigurations)
-        val entryPointsByPlatformJs = "{" + entryPointsByPlatform
-          .foldLeft("") { case (acc, (platform, entryPoints)) =>
-            acc + s"${platform.jsValue}:${entryPoints.map("'" + _ + "'").mkString("[", ",", "]")}"
-          } + "}"
+        val entryPoints = jsFileNames(stageTaskReport)
+        val entryPointsJs =
+          s"${entryPoints.map("'" + _ + "'").mkString("[", ",", "]")}"
         val targetDirectory = (esbuildInstall / crossTarget).value
         val outputDirectory =
           (stageTask / esbuildBundle / crossTarget).value
@@ -226,20 +203,24 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
           true
         }
 
+        val moduleKind = scalaJSLinkerConfig.value.moduleKind
+        val platformJs = EsbuildPlatform(moduleKind).jsValue
+
         // language=JS
         s"""
           |${EsbuildScripts.esbuildOptions}
           |
           |${EsbuildScripts.bundle}
           |
-          |${EsbuildScripts.bundleByPlatform}
-          |
-          |bundleByPlatform(
-          |  $entryPointsByPlatformJs,
+          |bundle(
+          |  $platformJs,
+          |  $entryPointsJs,
           |  $relativeOutputDirectoryJs,
           |  null,
           |  false,
-          |  $minify
+          |  $minify,
+          |  null,
+          |  null
           |);
           |""".stripMargin
       },

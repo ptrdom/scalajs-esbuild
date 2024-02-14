@@ -129,37 +129,4 @@ object EsbuildScripts {
       |};
       |""".stripMargin
   }
-
-  private[scalajsesbuild] def bundleByPlatform = {
-    // language=JS
-    """const bundleByPlatform = async (
-      |  entryPointsByPlatform,
-      |  outDirectory,
-      |  outputFilesDirectory,
-      |  hashOutputFiles,
-      |  minify
-      |) => {
-      |  return await Promise
-      |    .all(
-      |      Object.keys(entryPointsByPlatform).reduce((acc, platform) => {
-      |        const platformMetafilePromise =
-      |          bundle(
-      |            platform,
-      |            entryPointsByPlatform[platform],
-      |            outDirectory,
-      |            outputFilesDirectory,
-      |            hashOutputFiles,
-      |            minify
-      |          )
-      |          .then((metafile) => {
-      |            return {[platform]: metafile};
-      |          });
-      |        acc.push(platformMetafilePromise);
-      |        return acc;
-      |      }, [])
-      |    )
-      |    .then((results) => results.reduce((acc, result) => ({...acc, ...result}) , {}));
-      |};
-      |""".stripMargin
-  }
 }
