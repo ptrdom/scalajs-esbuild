@@ -67,7 +67,7 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
 
         val targetDirectory = (esbuildInstall / crossTarget).value
         val outputDirectory =
-          (stageTask / esbuildBundle / crossTarget).value
+          (esbuildBundle / crossTarget).value
         val path =
           targetDirectory
             .relativize(new File(outputDirectory, mainModule.jsFileName))
@@ -117,7 +117,7 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
           .mkString("[", ",", "]")
         val targetDirectory = (esbuildInstall / crossTarget).value
         val outputDirectory =
-          (stageTask / esbuildBundle / crossTarget).value
+          (esbuildBundle / crossTarget).value
         val relativeOutputDirectory =
           targetDirectory
             .relativize(outputDirectory)
@@ -206,7 +206,7 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
         val targetDirectory = (esbuildInstall / crossTarget).value
         val nodeRelativeOutputDirectoryJs = {
           val outputDirectory =
-            (stageTask / esbuildBundle / crossTarget).value
+            (esbuildBundle / crossTarget).value
           val nodeRelativeOutputDirectory = targetDirectory
             .relativize(outputDirectory)
             .getOrElse(

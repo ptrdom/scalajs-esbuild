@@ -114,7 +114,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
           entryPoints.map("'" + _ + "'").mkString("[", ",", "]")
         val targetDirectory = (esbuildInstall / crossTarget).value
         val outputDirectory =
-          (stageTask / esbuildBundle / crossTarget).value
+          (esbuildBundle / crossTarget).value
         val relativeOutputDirectory =
           targetDirectory
             .relativize(outputDirectory)

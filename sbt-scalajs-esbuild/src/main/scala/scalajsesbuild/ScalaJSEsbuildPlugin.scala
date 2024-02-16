@@ -85,6 +85,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         "esbuild" /
         (if (configuration.value == Compile) "main" else "test")
     },
+    esbuildBundle / crossTarget := (esbuildInstall / crossTarget).value / "out",
     esbuildCopyResources / fileInputs += (esbuildResourcesDirectory.value.toGlob / **),
     esbuildCopyResources / fileInputExcludeFilter := (esbuildCopyResources / fileInputExcludeFilter).value || (esbuildResourcesDirectory.value.toGlob / "node_modules" / **),
     esbuildCopyResources := {
@@ -185,8 +186,6 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
 
         installFileChanges ++ stageTaskFileChanges
       },
-      // TODO move out of `stageTask` scope
-      stageTask / esbuildBundle / crossTarget := (esbuildInstall / crossTarget).value / "out",
       stageTask / esbuildBundleScript := {
         val stageTaskReport = stageTask.value.data
         val entryPoints = jsFileNames(stageTaskReport)
@@ -194,7 +193,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
           s"${entryPoints.map("'" + _ + "'").mkString("[", ",", "]")}"
         val targetDirectory = (esbuildInstall / crossTarget).value
         val outputDirectory =
-          (stageTask / esbuildBundle / crossTarget).value
+          (esbuildBundle / crossTarget).value
         val relativeOutputDirectory =
           targetDirectory
             .relativize(outputDirectory)
@@ -238,7 +237,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         val fileChanges = (stageTask / esbuildCompile).value
         val bundlingScript = (stageTask / esbuildBundleScript).value
         val targetDir = (esbuildInstall / crossTarget).value
-        val outDir = (stageTask / esbuildBundle / crossTarget).value
+        val outDir = (esbuildBundle / crossTarget).value
 
         if (fileChanges.hasChanges || !outDir.exists()) {
           val scriptFileName = "sbt-scalajs-esbuild-bundle-script.cjs"
