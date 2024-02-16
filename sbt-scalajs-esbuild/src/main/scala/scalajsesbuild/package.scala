@@ -111,7 +111,7 @@ package object scalajsesbuild {
       val mainModule = resolveMainModule(report)
 
       val path =
-        ((stageTask / esbuildBundle / crossTarget).value / mainModule.jsFileName).toPath
+        ((esbuildBundle / crossTarget).value / mainModule.jsFileName).toPath
       Seq(Input.Script(path))
     }
   }
