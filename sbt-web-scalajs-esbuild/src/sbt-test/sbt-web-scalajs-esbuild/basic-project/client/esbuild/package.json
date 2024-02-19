@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "devDependencies": {
-    "esbuild": "0.20.0",
+    "esbuild": "0.20.1",
     "parse5": "7.1.2",
     "lodash": "4.17.21"
   }
