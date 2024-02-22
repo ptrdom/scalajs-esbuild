@@ -34,31 +34,6 @@ lazy val commonSettings = Seq(
   scriptedBufferLog := false
 )
 
-def shadingSettings = Seq(
-  // workaround for https://github.com/coursier/sbt-shading/issues/39
-  packagedArtifacts := {
-    val sbtV = (pluginCrossBuild / sbtBinaryVersion).value
-    val scalaV = scalaBinaryVersion.value
-    val packagedArtifactsV = packagedArtifacts.value
-    val nameV = name.value
-
-    val (legacyArtifact, legacyFile) = packagedArtifactsV
-      .find { case (a, _) =>
-        a.`type` == "jar" && a.name == nameV
-      }
-      .getOrElse(sys.error("Legacy jar not found"))
-    val mavenArtifact =
-      legacyArtifact.withName(nameV + s"_${scalaV}_$sbtV")
-    val mavenFile = new File(
-      legacyFile.getParentFile,
-      legacyFile.name.replace(legacyArtifact.name, mavenArtifact.name)
-    )
-    IO.copyFile(legacyFile, mavenFile)
-
-    packagedArtifactsV + (mavenArtifact -> mavenFile)
-  }
-)
-
 lazy val `sbt-scalajs-esbuild` =
   project
     .in(file("sbt-scalajs-esbuild"))
@@ -70,28 +45,13 @@ lazy val `sbt-scalajs-esbuild` =
 
 lazy val `sbt-scalajs-esbuild-web` = project
   .in(file("sbt-scalajs-esbuild-web"))
-  .enablePlugins(SbtPlugin, ShadingPlugin)
+  .enablePlugins(SbtPlugin)
   .settings(
     commonSettings,
-    libraryDependencies += "org.typelevel" %% "jawn-ast" % "1.5.1",
-    shadedModules ++= Set(
-      "org.typelevel" %% "jawn-ast",
-      "org.typelevel" %% "jawn-parser",
-      "org.typelevel" %% "jawn-util"
-    ),
-    shadingRules ++= Seq(
-      ShadingRule
-        .moveUnder(
-          "org.typelevel.jawn",
-          "scalajsesbuild.shaded.org.typelevel.jawn"
-        )
-    ),
-    validNamespaces ++= Set("scalajsesbuild", "sbt"),
     scriptedDependencies := {
       val () = scriptedDependencies.value
       val () = (`sbt-scalajs-esbuild` / publishLocal).value
-    },
-    shadingSettings
+    }
   )
   .dependsOn(`sbt-scalajs-esbuild`)
 
@@ -118,8 +78,7 @@ lazy val `sbt-scalajs-esbuild-electron` =
       scriptedDependencies := {
         val () = scriptedDependencies.value
         val () = (`sbt-scalajs-esbuild` / publishLocal).value
-      },
-      shadingSettings
+      }
     )
     .dependsOn(`sbt-scalajs-esbuild-web`)
 
