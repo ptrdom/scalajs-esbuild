@@ -158,7 +158,6 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
           |  null,
           |  false,
           |  $minify,
-          |  'sbt-scalajs-esbuild-node-bundle-meta.json',
           |  {external: ['electron']}
           |);
           |
@@ -168,8 +167,7 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
           |  $relativeOutputDirectoryJs,
           |  'assets',
           |  false,
-          |  $minify,
-          |  'sbt-scalajs-esbuild-renderer-bundle-meta.json'
+          |  $minify
           |);
           |
           |metaFilePromise
