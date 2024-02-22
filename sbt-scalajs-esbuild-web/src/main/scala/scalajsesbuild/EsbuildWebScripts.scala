@@ -114,7 +114,6 @@ object EsbuildWebScripts {
       |  entryPoints,
       |  outDirectory,
       |  outputFilesDirectory,
-      |  metaFileName,
       |  serverPort,
       |  serverProxyPort,
       |  htmlEntryPoints
@@ -122,10 +121,11 @@ object EsbuildWebScripts {
       |  const http = require('http');
       |  const esbuild = require('esbuild');
       |  const fs = require('fs');
-      |  const path = require('path');
       |  const EventEmitter = require('events');
       |
       |  const reloadEventEmitter = new EventEmitter();
+      |
+      |  var meta = null;
       |  
       |  const plugins = [{
       |    name: 'metafile-plugin',
@@ -133,9 +133,9 @@ object EsbuildWebScripts {
       |      build.onEnd(result => {
       |        if (!result.metafile) {
       |          console.warn("Metafile missing in build result")
-      |          fs.writeFileSync(metaFileName, '{}');
+      |          meta = null;
       |        } else {
-      |          fs.writeFileSync(metaFileName, JSON.stringify(result.metafile));
+      |          meta = result.metafile;
       |        }
       |      });
       |    }
@@ -161,15 +161,6 @@ object EsbuildWebScripts {
       |  });
       |
       |  const proxy = http.createServer((req, res) => {
-      |    const metaPath = path.join(__dirname, metaFileName);
-      |    let meta;
-      |    try {
-      |      meta = JSON.parse(fs.readFileSync(metaPath));
-      |    } catch (error) {
-      |      res.writeHead(500);
-      |      res.end('META file ['+metaPath+'] not found');
-      |    }
-      |
       |    if (meta) {
       |      const forwardRequest = (path) => {
       |        const options = {
