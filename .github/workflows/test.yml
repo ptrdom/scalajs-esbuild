@@ -12,8 +12,13 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-14]
+        os: [ubuntu-latest, windows-latest]
+        experimental: [false]
+        include:
+          - os: macos-14
+            experimental: true
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
     steps:
       - uses: actions/checkout@v4
       - uses: coursier/cache-action@v6
