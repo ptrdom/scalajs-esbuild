@@ -103,11 +103,11 @@ object EsbuildScripts {
       |  outputFilesDirectory,
       |  hashOutputFiles,
       |  minify,
-      |  metaFileName,
       |  additionalEsbuildOptions
       |) => {
       |  const esbuild = require('esbuild');
       |  const fs = require('fs');
+      |  const path = require('path');
       |
       |  const result = await esbuild.build(
       |    esbuildOptions(
@@ -121,8 +121,16 @@ object EsbuildScripts {
       |    )
       |  );
       |
-      |  if (metaFileName) {
-      |    fs.writeFileSync(metaFileName, JSON.stringify(result.metafile));
+      |  const output = Object.keys(result.metafile.outputs).reduce((acc, key) => {
+      |    const output = result.metafile.outputs[key];
+      |    if (output.entryPoint) {
+      |      return `${acc}${output.entryPoint}${path.delimiter}${key}\n`;
+      |    } else {
+      |      return acc;
+      |    }
+      |  }, "");
+      |  if (output) {
+      |    fs.writeFileSync('sbt-scalajs-esbuild-bundle-output.txt', output);
       |  }
       |
       |  return result.metafile;

@@ -1,22 +1,22 @@
 package scalajsesbuild
 
+import java.io.File
+import java.nio.file.Path
+
 import org.scalajs.jsenv.Input.Script
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.ModuleKind
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.jsEnvInput
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSLinkerConfig
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
 import org.scalajs.sbtplugin.Stage
-import org.typelevel.jawn.ast.JObject
-import org.typelevel.jawn.ast.JParser
-import sbt.AutoPlugin
 import sbt.*
+import sbt.AutoPlugin
 import sbt.Keys.*
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundleScript
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildCompile
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildRunner
-import java.nio.file.Path
 
 import scala.sys.process.*
 
@@ -58,31 +58,23 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
 
         val targetDir = (stageTask / esbuildInstall / crossTarget).value
 
-        val metaJson =
-          JParser.parseUnsafe(
-            IO.read(targetDir / "sbt-scalajs-esbuild-bundle-meta.json")
-          )
+        val bundleOutputs = IO
+          .readLines(targetDir / "sbt-scalajs-esbuild-bundle-output.txt")
+          .map(_.split(File.pathSeparator).toList match {
+            case List(entryPoint, output) => entryPoint -> output
+            case invalid =>
+              sys.error(s"Invalid bundle output line format [$invalid]")
+          })
+          .toMap
 
         val mainModule = resolveMainModule(stageTask.value.data)
 
-        val outputBundle = metaJson
-          .get("outputs")
-          .asInstanceOf[JObject]
-          .vs
-          .collectFirst {
-            case (outputBundle, output)
-                if output
-                  .asInstanceOf[JObject]
-                  .get("entryPoint")
-                  .getString
-                  .contains(mainModule.jsFileName) =>
-              outputBundle
-          }
-          .getOrElse(
-            sys.error(
-              s"Output bundle not found for main module [${mainModule.moduleID}]"
-            )
+        val outputBundle = bundleOutputs.getOrElse(
+          mainModule.jsFileName,
+          sys.error(
+            s"Output bundle for main module entryPoint [${mainModule.jsFileName}] not found in bundle outputs [$bundleOutputs]"
           )
+        )
 
         Seq(
           Script(
@@ -154,8 +146,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
            |  $relativeOutputDirectoryJs,
            |  'assets',
            |  $hashOutputFiles,
-           |  $minify,
-           |  'sbt-scalajs-esbuild-bundle-meta.json'
+           |  $minify
            |);
            |
            |metaFilePromise
