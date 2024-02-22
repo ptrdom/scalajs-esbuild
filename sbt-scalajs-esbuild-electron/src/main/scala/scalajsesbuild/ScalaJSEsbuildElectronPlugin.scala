@@ -255,7 +255,6 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
            |  $rendererModuleEntryPointsJsArray,
            |  $rendererRelativeOutputDirectoryJs,
            |  'assets',
-           |  'sbt-scalajs-esbuild-renderer-bundle-meta.json',
            |  8001,
            |  8000,
            |  $htmlEntryPointsJsArray

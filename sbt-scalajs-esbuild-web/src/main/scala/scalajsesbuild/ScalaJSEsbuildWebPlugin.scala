@@ -209,7 +209,6 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
            |  $entryPointsJsArray,
            |  $relativeOutputDirectoryJs,
            |  'assets',
-           |  'sbt-scalajs-esbuild-serve-meta.json',
            |  8001,
            |  8000,
            |  $htmlEntryPointsJsArray
