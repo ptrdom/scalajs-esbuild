@@ -1,3 +1,1 @@
 addSbtPlugin("me.ptrdom" % "sbt-scalajs-esbuild" % pluginVersion)
-
-libraryDependencies += "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.0"

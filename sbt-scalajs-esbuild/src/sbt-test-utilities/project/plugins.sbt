@@ -28,5 +28,3 @@ if (sourcePlugins.nonEmpty) {
     addSbtPlugin("me.ptrdom" % "sbt-scalajs-esbuild" % scalaJSEsbuildVersion)
   )
 }
-
-libraryDependencies += "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.0"
