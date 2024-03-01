@@ -5,7 +5,7 @@ import scalajsesbuild.EsbuildElectronProcessConfiguration
 lazy val root = (project in file("."))
   .aggregate(
     app,
-    `integration-test-selenium-jvm`
+    `e2e-test-selenium-jvm`
   )
 
 ThisBuild / scalaVersion := "2.13.8"
@@ -35,8 +35,8 @@ lazy val app = (project in file("app"))
     libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.2.0"
   )
 
-lazy val `integration-test-selenium-jvm` =
-  (project in file("integration-test-selenium-jvm"))
+lazy val `e2e-test-selenium-jvm` =
+  (project in file("e2e-test-selenium-jvm"))
     .settings(
       Test / test := (Test / test).dependsOn {
         Def.taskDyn {

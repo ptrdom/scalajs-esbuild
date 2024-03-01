@@ -6,7 +6,7 @@ import scalajsesbuild.EsbuildElectronProcessConfiguration
 lazy val root = (project in file("."))
   .aggregate(
     app,
-    `integration-test-playwright-node`
+    `e2e-test-playwright-node`
   )
 
 ThisBuild / scalaVersion := "2.13.8"
@@ -36,8 +36,8 @@ lazy val app = (project in file("app"))
     libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.2.0"
   )
 
-lazy val `integration-test-playwright-node` =
-  (project in file("integration-test-playwright-node"))
+lazy val `e2e-test-playwright-node` =
+  (project in file("e2e-test-playwright-node"))
     .enablePlugins(ScalaJSPlugin)
     .settings(
       scalaJSLinkerConfig ~= {
