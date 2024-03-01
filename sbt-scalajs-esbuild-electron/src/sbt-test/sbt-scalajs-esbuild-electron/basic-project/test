@@ -1,0 +1,21 @@
+$ absent esbuild/package-lock.json
+> clean
+> set Compile/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
+> esbuildServeStart
+# TODO figure out how to test if dev mode works
+> esbuildServeStop
+> fastLinkJS/esbuildServeStart
+# TODO figure out how to test if dev mode works
+> fastLinkJS/esbuildServeStop
+$ exists esbuild/package-lock.json
+
+$ delete esbuild/package-lock.json
+> clean
+> set Compile/scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt
+> esbuildServeStart
+# TODO figure out how to test if dev mode works
+> esbuildServeStop
+> fullLinkJS/esbuildServeStart
+# TODO figure out how to test if dev mode works
+> fullLinkJS/esbuildServeStop
+$ exists esbuild/package-lock.json
