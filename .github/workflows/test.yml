@@ -37,7 +37,11 @@ jobs:
         run: corepack prepare yarn@1.22.19 --activate
       - name: Setup pnpm
         run: corepack prepare pnpm@8.8.0 --activate
+      - name: Compile
+        if: ${{ matrix.jdk == 8 }}
+        run: sbt Test/compile
       - name: Run tests
+        if: ${{ matrix.jdk == 11 }}
         uses: coactions/setup-xvfb@v1
         with:
           run: sbt scalafmtSbtCheck scalafmtCheckAll test ${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }}
