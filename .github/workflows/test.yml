@@ -12,6 +12,7 @@ jobs:
   build:
     strategy:
       matrix:
+        jdk: [8, 11]
         os: [ubuntu-latest, windows-latest]
         experimental: [false]
         include:
@@ -25,7 +26,7 @@ jobs:
         id: coursier-cache
       - uses: coursier/setup-action@v1
         with:
-          jvm: temurin:11
+          jvm: temurin:${{ matrix.jdk }}
           apps: sbt
       - uses: actions/setup-node@v4
         with:

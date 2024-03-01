@@ -1,8 +1,5 @@
 package scalajsesbuild
 
-import java.io.File
-import java.nio.file.Path
-
 import org.scalajs.jsenv.Input.Script
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.ModuleKind
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.jsEnvInput
@@ -18,6 +15,9 @@ import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildCompile
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
 import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildRunner
 
+import java.io.File
+import java.nio.file.Path
+import java.nio.file.Paths
 import scala.sys.process.*
 
 object ScalaJSEsbuildWebPlugin extends AutoPlugin {
@@ -45,7 +45,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
         _.withModuleKind(ModuleKind.ESModule)
       },
       esbuildBundleHtmlEntryPoints := Seq(
-        Path.of("index.html")
+        Paths.get("index.html")
       )
     ) ++ inConfig(Compile)(perConfigSettings) ++
       inConfig(Test)(perConfigSettings)
@@ -212,6 +212,28 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
       val terminateProcess = (log: Logger) => {
         process.foreach { process =>
           log.info(s"Stopping esbuild serve process")
+
+          // using reflection to keep JDK 8 compatibility
+          val javaProcessMethod = process.getClass.getDeclaredField("p")
+          javaProcessMethod.setAccessible(true)
+          val javaProcess =
+            javaProcessMethod.get(process).asInstanceOf[java.lang.Process]
+          javaProcess.getClass.getMethods
+            .find(
+              _.getName == "descendants"
+            )
+            .foreach { descendantsMethod =>
+              val descendants = descendantsMethod
+                .invoke(javaProcess)
+                .asInstanceOf[java.util.stream.Stream[Any]]
+              descendants.forEach { process =>
+                val destroyMethod =
+                  process.getClass.getMethod("destroy")
+                destroyMethod.setAccessible(true)
+                destroyMethod.invoke(process)
+              }
+            }
+
           process.destroy()
         }
         process = None
