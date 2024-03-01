@@ -9,7 +9,7 @@
   "devDependencies": {
     "esbuild": "0.20.1",
     "parse5": "7.1.2",
-    "electron": "28.2.4",
+    "electron": "28.2.5",
     "electron-builder": "24.12.0"
   }
 }
