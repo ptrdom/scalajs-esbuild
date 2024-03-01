@@ -42,7 +42,7 @@ jobs:
         if: ${{ matrix.jdk == 8 }}
         run: sbt Test/compile
       - name: Run tests
-        if: ${{ matrix.jdk == 11 }}
+        if: ${{ matrix.jdk != 8 }}
         uses: coactions/setup-xvfb@v1
         with:
           run: sbt scalafmtSbtCheck scalafmtCheckAll test ${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }}
