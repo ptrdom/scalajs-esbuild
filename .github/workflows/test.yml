@@ -12,10 +12,12 @@ jobs:
   build:
     strategy:
       matrix:
+        jdk: [8, 11]
         os: [ubuntu-latest, windows-latest]
         experimental: [false]
         include:
-          - os: macos-14
+          - jdk: 11
+            os: macos-14
             experimental: true
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}
@@ -25,7 +27,7 @@ jobs:
         id: coursier-cache
       - uses: coursier/setup-action@v1
         with:
-          jvm: temurin:11
+          jvm: temurin:${{ matrix.jdk }}
           apps: sbt
       - uses: actions/setup-node@v4
         with:
@@ -36,7 +38,11 @@ jobs:
         run: corepack prepare yarn@1.22.19 --activate
       - name: Setup pnpm
         run: corepack prepare pnpm@8.8.0 --activate
+      - name: Compile
+        if: ${{ matrix.jdk == 8 }}
+        run: sbt Test/compile
       - name: Run tests
+        if: ${{ matrix.jdk != 8 }}
         uses: coactions/setup-xvfb@v1
         with:
           run: sbt scalafmtSbtCheck scalafmtCheckAll test ${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }}
