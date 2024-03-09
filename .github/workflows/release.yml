@@ -14,7 +14,7 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           jvm: temurin:11
-      - run: sbt ci-release
+      - run: sbt exampleVersionCheck ci-release
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}

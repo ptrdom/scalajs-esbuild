@@ -1,4 +1,4 @@
-$ absent esbuild/package-lock.json
+$ delete esbuild/package-lock.json
 > set scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
 > run
 $ exists esbuild/package-lock.json

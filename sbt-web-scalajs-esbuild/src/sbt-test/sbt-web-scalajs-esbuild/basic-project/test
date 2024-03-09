@@ -1,6 +1,6 @@
 # npm
 
-$ absent client/esbuild/package-lock.json
+$ delete client/esbuild/package-lock.json
 > clean
 > set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
 > server/bgRun
@@ -20,7 +20,7 @@ $ delete client/esbuild/package-lock.json
 
 # pnpm
 
-$ absent client/esbuild/pnpm-lock.yaml
+$ delete client/esbuild/pnpm-lock.yaml
 > set client/esbuildPackageManager := new scalajsesbuild.PackageManager { override def name = "pnpm"; override def lockFile = "pnpm-lock.yaml"; override def installCommand = "install";  }
 > clean
 > set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
@@ -42,7 +42,7 @@ $ delete client/esbuild/pnpm-lock.yaml
 
 # yarn
 
-$ absent client/esbuild/yarn.lock
+$ delete client/esbuild/yarn.lock
 > set client/esbuildPackageManager := new scalajsesbuild.PackageManager { override def name = "yarn"; override def lockFile = "yarn.lock"; override def installCommand = "install";  }
 > clean
 > set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
