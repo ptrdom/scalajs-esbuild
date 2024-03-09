@@ -22,11 +22,10 @@ lazy val server = project
     Compile / compile := ((Compile / compile) dependsOn scalaJSPipeline).value,
     Runtime / managedClasspath += (Assets / packageBin).value,
     libraryDependencies ++= {
-      val akkaVersion = "2.6.20"
       Seq(
-        "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
-        "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-        "com.typesafe.akka" %% "akka-http" % "10.2.10"
+        "org.apache.pekko" %% "pekko-actor-typed" % "1.0.2",
+        "org.apache.pekko" %% "pekko-stream" % "1.0.2",
+        "org.apache.pekko" %% "pekko-http" % "1.0.0"
       )
     }
   )
