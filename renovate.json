@@ -3,9 +3,5 @@
   "extends": [
     "config:recommended"
   ],
-  "enabledManagers": ["github-actions", "npm", "sbt"],
-  "ignorePaths": [
-    "/project/**",
-    "/*.sbt"
-  ]
+  "enabledManagers": ["github-actions", "npm"]
 }
