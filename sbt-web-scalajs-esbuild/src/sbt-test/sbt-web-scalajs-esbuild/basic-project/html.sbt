@@ -39,15 +39,19 @@ InputKey[Unit]("html") := {
   }
   import webBrowser._
 
-  {
-    eventually {
-      go to s"http://localhost:$port"
-    }
+  try {
+    {
+      eventually {
+        go to s"http://localhost:$port"
+      }
 
-    eventually {
-      find(tagName("h1")).head.text shouldBe "BASIC-PROJECT-SBT-WEB WORKS!"
-    }
-  } withClue s"Page source:\n[$pageSource]"
+      eventually {
+        find(tagName("h1")).head.text shouldBe "BASIC-PROJECT-SBT-WEB WORKS!"
+      }
+    } withClue s"Page source:\n[$pageSource]"
+  } finally {
+    webBrowser.webDriver.quit()
+  }
 
   ()
 }

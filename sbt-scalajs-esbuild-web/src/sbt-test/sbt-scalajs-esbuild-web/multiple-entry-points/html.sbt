@@ -86,7 +86,7 @@ InputKey[Unit]("html") := {
       eventually {
         find(tagName("pre")).head.text shouldBe "404 - Not Found"
       }
-    } withClue s"Page source: [\n$pageSource]"
+    } withClue s"Page source:\n[$pageSource]"
   } finally {
     webBrowser.webDriver.quit()
   }
