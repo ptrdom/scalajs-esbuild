@@ -8,4 +8,4 @@ scalaJSLinkerConfig ~= {
 
 scalaJSUseMainModuleInitializer := true
 
-libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.15" % "test"
+libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.16" % "test"

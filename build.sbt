@@ -95,3 +95,14 @@ TaskKey[Unit]("scriptedSequentialPerModule") := {
       )
   }.value
 }
+
+lazy val scalaStewardHooks = Def.settings(
+  scalaVersion := "2.13.13",
+  libraryDependencies ++= Seq(
+    "org.scala-js" %% "scalajs-dom" % "2.2.0",
+    "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+    "org.scalatestplus" %% "selenium-4-9" % "3.2.16.0",
+    "org.seleniumhq.selenium" % "selenium-java" % "4.18.1",
+    "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.16"
+  )
+)
