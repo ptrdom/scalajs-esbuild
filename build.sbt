@@ -101,8 +101,11 @@ lazy val scalaStewardHooks = Def.settings(
   libraryDependencies ++= Seq(
     "org.scala-js" %% "scalajs-dom" % "2.2.0",
     "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+    "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.16",
     "org.scalatestplus" %% "selenium-4-9" % "3.2.16.0",
     "org.seleniumhq.selenium" % "selenium-java" % "4.18.1",
-    "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.16"
+    "org.apache.pekko" %% "pekko-actor-typed" % "1.0.2",
+    "org.apache.pekko" %% "pekko-stream" % "1.0.2",
+    "org.apache.pekko" %% "pekko-http" % "1.0.0"
   )
 )
