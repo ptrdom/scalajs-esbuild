@@ -7,8 +7,8 @@ import scala.sys.process._
 lazy val root = (project in file("."))
   .aggregate(
     app,
-    `integration-test-playwright-node`,
-    `integration-test-selenium-jvm`
+    `e2e-test-playwright-node`,
+    `e2e-test-selenium-jvm`
   )
 
 ThisBuild / scalaVersion := "2.13.8"
@@ -75,8 +75,8 @@ lazy val app = (project in file("app"))
       }
   )
 
-lazy val `integration-test-selenium-jvm` =
-  (project in file("integration-test-selenium-jvm"))
+lazy val `e2e-test-selenium-jvm` =
+  (project in file("e2e-test-selenium-jvm"))
     .settings(
       Test / test := (Test / test).dependsOn {
         Def.taskDyn {
@@ -96,8 +96,8 @@ lazy val `integration-test-selenium-jvm` =
       ) // should be upgraded when Electron upgrades its chromium version
     )
 
-lazy val `integration-test-playwright-node` =
-  (project in file("integration-test-playwright-node"))
+lazy val `e2e-test-playwright-node` =
+  (project in file("e2e-test-playwright-node"))
     .enablePlugins(ScalaJSPlugin)
     .settings(
       scalaJSLinkerConfig ~= {

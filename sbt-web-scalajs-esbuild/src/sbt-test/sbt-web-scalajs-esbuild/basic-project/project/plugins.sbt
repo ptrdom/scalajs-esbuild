@@ -1,7 +1,8 @@
+val pluginName = "sbt-web-scalajs-esbuild"
 val sourcePlugins = sys.props
   .get("plugin.version")
   .map { version =>
-    println(s"Using plugin(s) version [${version}]")
+    println(s"Using plugin(s) version [$version]")
     Seq.empty
   }
   .getOrElse {
@@ -9,7 +10,7 @@ val sourcePlugins = sys.props
     Seq(
       ProjectRef(
         file("../../../../../../"),
-        "sbt-web-scalajs-esbuild"
+        pluginName
       ): ClasspathDep[ProjectReference]
     )
   }
@@ -20,13 +21,13 @@ lazy val root = (project in file("."))
 if (sourcePlugins.nonEmpty) {
   Seq.empty
 } else {
-  val scalaJSEsbuildVersion = sys.props.getOrElse(
+  val pluginVersion = sys.props.getOrElse(
     "plugin.version",
     sys.error("'plugin.version' environment variable is not set")
   )
   Seq(
     addSbtPlugin(
-      "me.ptrdom" % "sbt-web-scalajs-esbuild" % scalaJSEsbuildVersion
+      "me.ptrdom" % pluginName % pluginVersion
     )
   )
 }

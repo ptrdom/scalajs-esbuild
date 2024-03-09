@@ -227,10 +227,13 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
                 .invoke(javaProcess)
                 .asInstanceOf[java.util.stream.Stream[Any]]
               descendants.forEach { process =>
-                val destroyMethod =
-                  process.getClass.getMethod("destroy")
-                destroyMethod.setAccessible(true)
-                destroyMethod.invoke(process)
+                process.getClass.getInterfaces
+                  .find(_.getName == "java.lang.ProcessHandle")
+                  .foreach { processHandle =>
+                    val destroyMethod =
+                      processHandle.getDeclaredMethod("destroy")
+                    destroyMethod.invoke(process)
+                  }
               }
             }
 

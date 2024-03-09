@@ -41,36 +41,44 @@ InputKey[Unit]("html") := {
   }
   import webBrowser._
 
-  {
-    eventually {
-      go to s"http://localhost:$port"
+  try {
+    {
+      eventually {
+        go to s"http://localhost:$port"
 
-      inside(find(tagName("pre"))) {
-        case None =>
-          succeed
-        case Some(element) =>
-          element.text should not include regex("META file \\[.*\\] not found")
+        inside(find(tagName("pre"))) {
+          case None =>
+            succeed
+          case Some(element) =>
+            element.text should not include regex(
+              "META file \\[.*\\] not found"
+            )
+        }
       }
-    }
 
-    eventually {
-      find(tagName("h1")).head.text shouldBe "BASIC-WEB-PROJECT WORKS!"
-    }
+      eventually {
+        find(tagName("h1")).head.text shouldBe "BASIC-WEB-PROJECT WORKS!"
+      }
 
-    // should return index instead of 404
-    go to s"http://localhost:$port/any"
+      // should return index instead of 404
+      go to s"http://localhost:$port/any"
 
-    eventually {
-      find(tagName("h1")).head.text shouldBe "BASIC-WEB-PROJECT WORKS!"
-    }
+      eventually {
+        find(tagName("h1")).head.text shouldBe "BASIC-WEB-PROJECT WORKS!"
+      }
 
-    // should return 404 for html URLs if html file does not exist
-    go to s"http://localhost:$port/any.html"
+      // should return 404 for html URLs if html file does not exist
+      go to s"http://localhost:$port/any.html"
 
-    eventually {
-      find(tagName("pre")).head.text shouldBe "HTML file [./any.html] not found"
-    }
-  } withClue s"Page source:\n[$pageSource]"
+      eventually {
+        find(
+          tagName("pre")
+        ).head.text shouldBe "HTML file [./any.html] not found"
+      }
+    } withClue s"Page source:\n[$pageSource]"
+  } finally {
+    webBrowser.webDriver.quit()
+  }
 
   ()
 }
