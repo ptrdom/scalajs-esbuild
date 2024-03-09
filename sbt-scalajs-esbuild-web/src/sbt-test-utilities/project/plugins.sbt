@@ -25,9 +25,5 @@ if (sourcePlugins.nonEmpty) {
     "plugin.version",
     sys.error("'plugin.version' environment variable is not set")
   )
-  Seq(
-    addSbtPlugin(
-      "me.ptrdom" % pluginName % pluginVersion
-    )
-  )
+  Seq(addSbtPlugin("me.ptrdom" % pluginName % pluginVersion))
 }

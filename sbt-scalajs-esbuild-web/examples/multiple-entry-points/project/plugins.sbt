@@ -1,1 +1,1 @@
-addSbtPlugin("me.ptrdom" % "sbt-scalajs-esbuild-web" % pluginVersion)
+addSbtPlugin("me.ptrdom" % "sbt-scalajs-esbuild-web" % ???)

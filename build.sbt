@@ -40,7 +40,7 @@ lazy val commonSettings = Seq(
 lazy val `sbt-scalajs-esbuild` =
   project
     .in(file("sbt-scalajs-esbuild"))
-    .enablePlugins(SbtPlugin, ScriptedSourcesPlugin)
+    .enablePlugins(SbtPlugin, ScriptedSourcesPlugin, ExampleVersionPlugin)
     .settings(commonSettings)
     .settings(
       addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.15.0")
@@ -48,7 +48,7 @@ lazy val `sbt-scalajs-esbuild` =
 
 lazy val `sbt-scalajs-esbuild-web` = project
   .in(file("sbt-scalajs-esbuild-web"))
-  .enablePlugins(SbtPlugin, ScriptedSourcesPlugin)
+  .enablePlugins(SbtPlugin, ScriptedSourcesPlugin, ExampleVersionPlugin)
   .settings(
     commonSettings,
     scriptedDependencies := {
@@ -61,7 +61,7 @@ lazy val `sbt-scalajs-esbuild-web` = project
 lazy val `sbt-web-scalajs-esbuild` =
   project
     .in(file("sbt-web-scalajs-esbuild"))
-    .enablePlugins(SbtPlugin, ScriptedSourcesPlugin)
+    .enablePlugins(SbtPlugin, ScriptedSourcesPlugin, ExampleVersionPlugin)
     .settings(commonSettings)
     .settings(
       addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.3.0"),
@@ -75,7 +75,7 @@ lazy val `sbt-web-scalajs-esbuild` =
 lazy val `sbt-scalajs-esbuild-electron` =
   project
     .in(file("sbt-scalajs-esbuild-electron"))
-    .enablePlugins(SbtPlugin, ScriptedSourcesPlugin)
+    .enablePlugins(SbtPlugin, ScriptedSourcesPlugin, ExampleVersionPlugin)
     .settings(commonSettings)
     .settings(
       scriptedDependencies := {
