@@ -11,7 +11,7 @@ lazy val root = (project in file("."))
     `e2e-test-selenium-jvm`
   )
 
-ThisBuild / scalaVersion := "2.13.8"
+ThisBuild / scalaVersion := "2.13.13"
 
 val viteElectronBuildPackage =
   taskKey[Unit]("Generate package directory with electron-builder")
