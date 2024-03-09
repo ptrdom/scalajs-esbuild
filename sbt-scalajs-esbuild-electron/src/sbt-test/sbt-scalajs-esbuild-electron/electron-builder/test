@@ -1,4 +1,4 @@
-$ absent esbuild/package-lock.json
+$ delete esbuild/package-lock.json
 > clean
 > fastLinkJS/viteElectronBuildPackage
 > fastLinkJS/viteElectronBuildDistributable

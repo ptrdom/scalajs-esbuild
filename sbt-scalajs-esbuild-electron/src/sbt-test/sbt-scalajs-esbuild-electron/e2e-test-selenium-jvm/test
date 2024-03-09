@@ -1,4 +1,4 @@
-$ absent app/esbuild/package-lock.json
+$ delete app/esbuild/package-lock.json
 > clean
 > set app/Test/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
 > test

@@ -1,4 +1,4 @@
-$ absent esbuild/package-lock.json
+$ delete esbuild/package-lock.json
 > clean
 > set Compile/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
 > esbuildServeStart
