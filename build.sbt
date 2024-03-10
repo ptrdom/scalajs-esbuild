@@ -27,7 +27,8 @@ lazy val `scalajs-esbuild` = (project in file("."))
     `sbt-scalajs-esbuild`,
     `sbt-scalajs-esbuild-electron`,
     `sbt-scalajs-esbuild-web`,
-    `sbt-web-scalajs-esbuild`
+    `sbt-web-scalajs-esbuild`,
+    `scala-steward-hooks`
   )
 
 lazy val commonSettings = Seq(
@@ -96,16 +97,20 @@ TaskKey[Unit]("scriptedSequentialPerModule") := {
   }.value
 }
 
-lazy val scalaStewardHooks = Def.settings(
-  scalaVersion := "2.13.13",
-  libraryDependencies ++= Seq(
-    "org.scala-js" %% "scalajs-dom" % "2.2.0",
-    "org.scalatest" %% "scalatest" % "3.2.16" % "test",
-    "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.16",
-    "org.scalatestplus" %% "selenium-4-9" % "3.2.16.0",
-    "org.seleniumhq.selenium" % "selenium-java" % "4.18.1",
-    "org.apache.pekko" %% "pekko-actor-typed" % "1.0.2",
-    "org.apache.pekko" %% "pekko-stream" % "1.0.2",
-    "org.apache.pekko" %% "pekko-http" % "1.0.0"
+lazy val `scala-steward-hooks` = project
+  .in(file("scala-steward-hooks"))
+  .enablePlugins(ScalaJSPlugin)
+  .settings(
+    publish / skip := true,
+    scalaVersion := "2.13.13",
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % "2.2.0",
+      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.16",
+      "org.scalatestplus" %% "selenium-4-9" % "3.2.16.0",
+      "org.seleniumhq.selenium" % "selenium-java" % "4.18.1",
+      "org.apache.pekko" %% "pekko-actor-typed" % "1.0.2",
+      "org.apache.pekko" %% "pekko-stream" % "1.0.2",
+      "org.apache.pekko" %% "pekko-http" % "1.0.0"
+    )
   )
-)
