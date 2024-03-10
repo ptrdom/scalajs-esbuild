@@ -49,7 +49,7 @@ lazy val `e2e-test` =
           }
         }
       }.value,
-      libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.16" % "test",
+      libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.18" % "test",
       libraryDependencies ++= Seq(
         "org.scalatestplus" %% "selenium-4-9" % "3.2.16.0" % "test",
         "org.seleniumhq.selenium" % "selenium-java" % "4.18.1" % "test"
