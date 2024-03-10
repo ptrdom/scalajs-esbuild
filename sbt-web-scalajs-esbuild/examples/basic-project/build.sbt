@@ -25,7 +25,7 @@ lazy val server = project
       Seq(
         "org.apache.pekko" %% "pekko-actor-typed" % "1.0.2",
         "org.apache.pekko" %% "pekko-stream" % "1.0.2",
-        "org.apache.pekko" %% "pekko-http" % "1.0.0"
+        "org.apache.pekko" %% "pekko-http" % "1.0.1"
       )
     }
   )
