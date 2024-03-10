@@ -32,7 +32,7 @@ lazy val app = (project in file("app"))
       Set("preload"),
       Set("renderer")
     ),
-    libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.2.0"
+    libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.8.0"
   )
 
 lazy val `e2e-test` =
@@ -52,6 +52,6 @@ lazy val `e2e-test` =
       libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.16" % "test",
       libraryDependencies ++= Seq(
         "org.scalatestplus" %% "selenium-4-9" % "3.2.16.0" % "test",
-        "org.seleniumhq.selenium" % "selenium-java" % "4.18.1" % "test",
+        "org.seleniumhq.selenium" % "selenium-java" % "4.18.1" % "test"
       ) // should be upgraded when Electron upgrades its chromium version
     )

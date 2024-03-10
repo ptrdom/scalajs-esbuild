@@ -5,7 +5,7 @@ enablePlugins(ScalaJSEsbuildWebPlugin)
 scalaVersion := "2.13.13"
 
 libraryDependencies ++= Seq(
-  "org.scala-js" %%% "scalajs-dom" % "2.2.0",
+  "org.scala-js" %%% "scalajs-dom" % "2.8.0",
   "org.scalatest" %%% "scalatest" % "3.2.16" % "test"
 )
 
