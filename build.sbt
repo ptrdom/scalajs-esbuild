@@ -3,7 +3,7 @@ import sbt.scripted.sources.ScriptedSourcesPlugin
 
 inThisBuild(
   List(
-    scalaVersion := "2.12.19",
+    scalaVersion := "2.13.13",
     organization := "me.ptrdom",
     homepage := Some(url("https://github.com/ptrdom/scalajs-esbuild")),
     licenses := List(License.MIT),
