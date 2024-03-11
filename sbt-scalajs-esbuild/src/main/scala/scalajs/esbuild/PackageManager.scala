@@ -1,4 +1,4 @@
-package scalajsesbuild
+package scalajs.esbuild
 
 import sbt.File
 import sbt.util.Logger

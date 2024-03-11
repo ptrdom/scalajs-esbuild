@@ -1,6 +1,6 @@
 import org.scalajs.linker.interface.ModuleInitializer
 import org.scalajs.sbtplugin.Stage
-import scalajsesbuild.EsbuildElectronProcessConfiguration
+import scalajs.esbuild.electron.EsbuildElectronProcessConfiguration
 
 lazy val root = (project in file("."))
   .aggregate(

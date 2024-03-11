@@ -1,8 +1,8 @@
-package scalajsesbuild
+package scalajs.esbuild.web
 
-object EsbuildWebScripts {
+object Scripts {
 
-  private[scalajsesbuild] def htmlTransform = {
+  private[esbuild] def htmlTransform = {
     // language=JS
     """
       |const htmlTransform = (
@@ -73,7 +73,7 @@ object EsbuildWebScripts {
       |}""".stripMargin
   }
 
-  private[scalajsesbuild] def transformHtmlEntryPoints = {
+  private[esbuild] def transformHtmlEntryPoints = {
     // language=JS
     """
       |const transformHtmlEntryPoints = (htmlEntryPoints, outDirectory, metafile) => {
@@ -92,7 +92,7 @@ object EsbuildWebScripts {
   }
 
   // TODO make dev server return this as a script to fix CSP issue in Electron plugin
-  private[scalajsesbuild] def esbuildLiveReload = {
+  private[esbuild] def esbuildLiveReload = {
     // language=JS
     """const esbuildLiveReload = (
        |  htmlString
@@ -107,7 +107,7 @@ object EsbuildWebScripts {
        |""".stripMargin
   }
 
-  private[scalajsesbuild] def serve = {
+  private[esbuild] def serve = {
     // language=JS
     """
       |const serve = async (

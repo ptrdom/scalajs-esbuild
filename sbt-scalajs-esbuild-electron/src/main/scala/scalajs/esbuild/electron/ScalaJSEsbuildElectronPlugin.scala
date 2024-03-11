@@ -1,4 +1,4 @@
-package scalajsesbuild
+package scalajs.esbuild.electron
 
 import org.scalajs.linker.interface.ModuleInitializer
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.ModuleKind
@@ -10,13 +10,16 @@ import org.scalajs.sbtplugin.Stage
 import sbt.*
 import sbt.AutoPlugin
 import sbt.Keys.*
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundleScript
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
-import scalajsesbuild.ScalaJSEsbuildWebPlugin.autoImport.esbuildBundleHtmlEntryPoints
-import scalajsesbuild.ScalaJSEsbuildWebPlugin.autoImport.esbuildServeScript
-import scalajsesbuild.ScalaJSEsbuildWebPlugin.autoImport.esbuildServeStart
-import scalajsesbuild.electron.*
+import scalajs.esbuild.{Scripts as _, *}
+import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
+import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundleScript
+import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
+import scalajs.esbuild.Scripts as BaseScripts
+import scalajs.esbuild.web.ScalaJSEsbuildWebPlugin
+import scalajs.esbuild.web.ScalaJSEsbuildWebPlugin.autoImport.esbuildBundleHtmlEntryPoints
+import scalajs.esbuild.web.ScalaJSEsbuildWebPlugin.autoImport.esbuildServeScript
+import scalajs.esbuild.web.ScalaJSEsbuildWebPlugin.autoImport.esbuildServeStart
+import scalajs.esbuild.web.Scripts as WebScripts
 
 import scala.sys.process.Process
 
@@ -143,13 +146,13 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
 
         // language=JS
         s"""
-          |${EsbuildScripts.esbuildOptions}
+          |${BaseScripts.esbuildOptions}
           |
-          |${EsbuildScripts.bundle}
+          |${BaseScripts.bundle}
           |
-          |${EsbuildWebScripts.htmlTransform}
+          |${WebScripts.htmlTransform}
           |
-          |${EsbuildWebScripts.transformHtmlEntryPoints}
+          |${WebScripts.transformHtmlEntryPoints}
           |
           |bundle(
           |  ${EsbuildPlatform.Node.jsValue},
@@ -237,17 +240,17 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
 
         // language=JS
         s"""
-           |${EsbuildScripts.esbuildOptions}
+           |${BaseScripts.esbuildOptions}
            |
-           |${EsbuildScripts.bundle}
+           |${BaseScripts.bundle}
            |
-           |${EsbuildWebScripts.htmlTransform}
+           |${WebScripts.htmlTransform}
            |
-           |${EsbuildWebScripts.esbuildLiveReload}
+           |${WebScripts.esbuildLiveReload}
            |
-           |${EsbuildWebScripts.serve}
+           |${WebScripts.serve}
            |
-           |${electron.Scripts.electronServe}
+           |${Scripts.electronServe}
            |
            |serve(
            |  $rendererModuleEntryPointsJsArray,

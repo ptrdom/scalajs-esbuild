@@ -1,4 +1,4 @@
-package scalajsesbuild
+package scalajs.esbuild.electron
 
 class EsbuildElectronProcessConfiguration(
     val mainModuleID: String,
