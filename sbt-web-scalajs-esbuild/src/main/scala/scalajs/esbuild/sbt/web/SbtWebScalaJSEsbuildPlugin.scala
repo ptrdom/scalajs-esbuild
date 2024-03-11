@@ -1,4 +1,6 @@
-package scalajsesbuild
+package scalajs.esbuild.sbt.web
+
+import java.nio.file.Files
 
 import com.typesafe.sbt.web.PathMapping
 import com.typesafe.sbt.web.pipeline.Pipeline
@@ -7,11 +9,10 @@ import org.scalajs.sbtplugin.Stage
 import sbt.*
 import sbt.Keys.*
 import sbt.Keys.resourceDirectories
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
+import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
 import webscalajs.WebScalaJS
 import webscalajs.WebScalaJS.autoImport.*
 
-import java.nio.file.Files
 import scala.jdk.CollectionConverters.*
 
 object SbtWebScalaJSEsbuildPlugin extends AutoPlugin {

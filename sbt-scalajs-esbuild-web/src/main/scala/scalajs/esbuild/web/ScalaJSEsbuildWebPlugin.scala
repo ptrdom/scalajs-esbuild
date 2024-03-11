@@ -1,4 +1,8 @@
-package scalajsesbuild
+package scalajs.esbuild.web
+
+import java.io.File
+import java.nio.file.Path
+import java.nio.file.Paths
 
 import org.scalajs.jsenv.Input.Script
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.ModuleKind
@@ -9,15 +13,14 @@ import org.scalajs.sbtplugin.Stage
 import sbt.*
 import sbt.AutoPlugin
 import sbt.Keys.*
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundleScript
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildCompile
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildRunner
+import scalajs.esbuild.{Scripts as _, *}
+import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
+import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundleScript
+import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildCompile
+import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
+import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildRunner
+import scalajs.esbuild.Scripts as BaseScripts
 
-import java.io.File
-import java.nio.file.Path
-import java.nio.file.Paths
 import scala.sys.process.*
 
 object ScalaJSEsbuildWebPlugin extends AutoPlugin {
@@ -132,13 +135,13 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
 
         // language=JS
         s"""
-           |${EsbuildScripts.esbuildOptions}
+           |${BaseScripts.esbuildOptions}
            |
-           |${EsbuildScripts.bundle}
+           |${BaseScripts.bundle}
            |
-           |${EsbuildWebScripts.htmlTransform}
+           |${Scripts.htmlTransform}
            |
-           |${EsbuildWebScripts.transformHtmlEntryPoints}
+           |${Scripts.transformHtmlEntryPoints}
            |
            |const metaFilePromise = bundle(
            |  ${EsbuildPlatform.Browser.jsValue},
@@ -186,15 +189,15 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
 
         // language=JS
         s"""
-           |${EsbuildScripts.esbuildOptions}
+           |${BaseScripts.esbuildOptions}
            |
-           |${EsbuildScripts.bundle}
+           |${BaseScripts.bundle}
            |
-           |${EsbuildWebScripts.htmlTransform}
+           |${Scripts.htmlTransform}
            |
-           |${EsbuildWebScripts.esbuildLiveReload}
+           |${Scripts.esbuildLiveReload}
            |
-           |${EsbuildWebScripts.serve}
+           |${Scripts.serve}
            |
            |serve(
            |  $entryPointsJsArray,

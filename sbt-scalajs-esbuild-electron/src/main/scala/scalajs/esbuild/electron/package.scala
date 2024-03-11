@@ -1,11 +1,11 @@
-package scalajsesbuild
+package scalajs.esbuild
 
 import org.scalajs.linker.interface.Report
 import org.scalajs.linker.interface.unstable
 
 package object electron {
 
-  private[scalajsesbuild] def extractEntryPointsByProcess(
+  private[electron] def extractEntryPointsByProcess(
       report: Report,
       electronProcessConfiguration: EsbuildElectronProcessConfiguration
   ) = {

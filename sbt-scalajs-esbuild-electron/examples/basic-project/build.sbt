@@ -1,5 +1,5 @@
 import org.scalajs.linker.interface.ModuleInitializer
-import scalajsesbuild.EsbuildElectronProcessConfiguration
+import scalajs.esbuild.electron.EsbuildElectronProcessConfiguration
 
 enablePlugins(ScalaJSEsbuildElectronPlugin)
 

@@ -1,8 +1,8 @@
-package scalajsesbuild.electron
+package scalajs.esbuild.electron
 
 object Scripts {
 
-  private[scalajsesbuild] def electronServe = {
+  private[esbuild] def electronServe = {
     // language=JS
     """const electronServe = async (
        |  reloadEventEmitter,

@@ -1,3 +1,5 @@
+package scalajs
+
 import java.nio.file.Path
 
 import org.scalajs.ir.Names.DefaultModuleID
@@ -10,16 +12,16 @@ import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.fullLinkJS
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSStage
 import sbt.*
 import sbt.Keys.crossTarget
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFastLinkJSWrapper
-import scalajsesbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFullLinkJSWrapper
+import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
+import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFastLinkJSWrapper
+import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFullLinkJSWrapper
 
-package object scalajsesbuild {
+package object esbuild {
 
-  private[scalajsesbuild] val isWindows =
+  private[esbuild] val isWindows =
     sys.props("os.name").toLowerCase.contains("win")
 
-  private[scalajsesbuild] implicit class ScalaJSStageOps(
+  private[esbuild] implicit class ScalaJSStageOps(
       stage: org.scalajs.sbtplugin.Stage
   ) {
     def stageTask: TaskKey[sbt.Attributed[Report]] = stage match {
@@ -33,7 +35,7 @@ package object scalajsesbuild {
     }
   }
 
-  private[scalajsesbuild] def jsFileNames(report: Report) = {
+  private[esbuild] def jsFileNames(report: Report) = {
     report match {
       case report: unstable.ReportImpl =>
         report.publicModules.map(publicModule => publicModule.jsFileName).toSet
@@ -42,7 +44,7 @@ package object scalajsesbuild {
     }
   }
 
-  private[scalajsesbuild] def processFileChanges(
+  private[esbuild] def processFileChanges(
       fileChanges: FileChanges,
       sourceDirectory: File,
       targetDirectory: File
@@ -75,7 +77,7 @@ package object scalajsesbuild {
     }
   }
 
-  implicit private[scalajsesbuild] class FileChangesOps(
+  implicit private[esbuild] class FileChangesOps(
       fileChanges: FileChanges
   ) {
     def ++(that: FileChanges) = {
@@ -88,7 +90,7 @@ package object scalajsesbuild {
     }
   }
 
-  private[scalajsesbuild] def resolveMainModule(
+  private[esbuild] def resolveMainModule(
       report: Report
   ) = {
     report.publicModules
@@ -102,7 +104,7 @@ package object scalajsesbuild {
       )
   }
 
-  private[scalajsesbuild] def jsEnvInputTask = Def.taskDyn {
+  private[esbuild] def jsEnvInputTask = Def.taskDyn {
     val stageTask = scalaJSStage.value.stageTask
     Def.task {
       (stageTask / esbuildBundle).value
@@ -116,10 +118,10 @@ package object scalajsesbuild {
     }
   }
 
-  private[scalajsesbuild] sealed trait EsbuildPlatform {
+  private[esbuild] sealed trait EsbuildPlatform {
     def jsValue: String = s"'${toString.toLowerCase}'"
   }
-  private[scalajsesbuild] object EsbuildPlatform {
+  private[esbuild] object EsbuildPlatform {
     case object Browser extends EsbuildPlatform
     case object Node extends EsbuildPlatform
 

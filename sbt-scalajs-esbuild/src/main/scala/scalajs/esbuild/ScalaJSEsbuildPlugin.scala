@@ -1,4 +1,4 @@
-package scalajsesbuild
+package scalajs.esbuild
 
 import java.nio.file.Path
 
@@ -212,9 +212,9 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
 
         // language=JS
         s"""
-          |${EsbuildScripts.esbuildOptions}
+          |${Scripts.esbuildOptions}
           |
-          |${EsbuildScripts.bundle}
+          |${Scripts.bundle}
           |
           |bundle(
           |  $platformJs,

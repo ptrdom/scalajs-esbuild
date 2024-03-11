@@ -1,8 +1,8 @@
-package scalajsesbuild
+package scalajs.esbuild
 
-object EsbuildScripts {
+object Scripts {
 
-  private[scalajsesbuild] def esbuildOptions = {
+  private[esbuild] def esbuildOptions = {
     // language=JS
     """const esbuildOptions = (
       |  platform,
@@ -94,7 +94,7 @@ object EsbuildScripts {
       |""".stripMargin
   }
 
-  private[scalajsesbuild] def bundle = {
+  private[esbuild] def bundle = {
     // language=JS
     """const bundle = async (
       |  platform,
