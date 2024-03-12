@@ -7,14 +7,14 @@ $ delete esbuild/package-lock.json
 > clean
 > set scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
 > esbuildServeStart
-> html 8000
+> html 3000
 > esbuildServeStop
 $ exists esbuild/package-lock.json
 
 $ delete esbuild/package-lock.json
 > clean
 > fastLinkJS/esbuildServeStart
-> html 8000
+> html 3000
 > fastLinkJS/esbuildServeStop
 $ exists esbuild/package-lock.json
 
@@ -28,13 +28,13 @@ $ delete esbuild/package-lock.json
 > clean
 > set scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt
 > esbuildServeStart
-> html 8000
+> html 3000
 > esbuildServeStop
 $ exists esbuild/package-lock.json
 
 $ delete esbuild/package-lock.json
 > clean
 > fullLinkJS/esbuildServeStart
-> html 8000
+> html 3000
 > fullLinkJS/esbuildServeStop
 $ exists esbuild/package-lock.json
