@@ -115,10 +115,13 @@ transformations like Vite, this plugin attempts to provide good enough stand-ins
 1. Use sbt tasks to compile Scala.js code and run esbuild:
     - `esbuildBundle`
       - In addition to base plugin behavior, web implementation also does HTML entry point transformation - injection Scala.js entry points and CSS files into HTML.
+    - `~esbuildServe`
+       - Starts dev server on port `3000`.
+         - Port can be configured with `esbuildServe / serverPort` setting.
+      - Watches for updates to Scala.js code and any resources in `esbuild` directory.
+      - CSS can be hot reloaded, changes to Scala.js code will cause a page reload.
     - `esbuildServeStart;~esbuildCompile;esbuildServeStop`
-      - Starts dev server on port `8000`.
-      - `esbuildCompile` will recompile Scala.js code and update any resources on changes.
-      - CSS can be hot reloaded, anything else will cause a page reload.
+      - Each step of `esbuildServe` as separate commands.
 
 See [examples](sbt-scalajs-esbuild-web/examples) for project templates.
 
@@ -186,7 +189,7 @@ bundling for tests and production builds, the plugin also provides a dev server 
 
    Entry points can be configured with `esbuildBundleHtmlEntryPoints` setting.
 
-1. Web plugin sbt tasks can be used to compile Scala.js code and run esbuild.
+1. Use web plugin sbt tasks to compile Scala.js code and run esbuild.
 
 See [examples](sbt-scalajs-esbuild-electron/examples) for project templates.
 
