@@ -17,6 +17,7 @@ import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
 import scalajs.esbuild.Scripts as BaseScripts
 import scalajs.esbuild.web.ScalaJSEsbuildWebPlugin
 import scalajs.esbuild.web.ScalaJSEsbuildWebPlugin.autoImport.esbuildBundleHtmlEntryPoints
+import scalajs.esbuild.web.ScalaJSEsbuildWebPlugin.autoImport.esbuildServe
 import scalajs.esbuild.web.ScalaJSEsbuildWebPlugin.autoImport.esbuildServeScript
 import scalajs.esbuild.web.ScalaJSEsbuildWebPlugin.autoImport.esbuildServeStart
 import scalajs.esbuild.web.Scripts as WebScripts
@@ -184,7 +185,6 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
           |""".stripMargin
       },
       stageTask / esbuildServeScript := {
-        val configurationV = configuration.value
         val stageTaskReport = stageTask.value.data
         val electronProcessConfiguration =
           esbuildElectronProcessConfiguration.value
@@ -237,6 +237,7 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
         )
         val htmlEntryPointsJsArray =
           htmlEntryPoints.map("'" + _ + "'").mkString("[", ",", "]")
+        val servePort = (esbuildServe / serverPort).value
 
         // language=JS
         s"""
@@ -256,14 +257,14 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
            |  $rendererModuleEntryPointsJsArray,
            |  $rendererRelativeOutputDirectoryJs,
            |  'assets',
-           |  8001,
-           |  8000,
+           |  0,
+           |  $servePort,
            |  $htmlEntryPointsJsArray
            |)
            |  .then((reloadEventEmitter) => {
            |    electronServe(
            |      reloadEventEmitter,
-           |      8000,
+           |      $servePort,
            |      $mainModuleEntryPointJs,
            |      $preloadModuleEntryPointsJs,
            |      $nodeRelativeOutputDirectoryJs
