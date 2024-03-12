@@ -13,13 +13,15 @@ import org.scalajs.sbtplugin.Stage
 import sbt.*
 import sbt.AutoPlugin
 import sbt.Keys.*
-import scalajs.esbuild.{Scripts as _, *}
+import sbt.nio.Keys.watchBeforeCommand
+import sbt.nio.Keys.watchOnTermination
 import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
 import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundleScript
 import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildCompile
 import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
 import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildRunner
 import scalajs.esbuild.Scripts as BaseScripts
+import scalajs.esbuild.{Scripts as _, *}
 
 import scala.sys.process.*
 
@@ -35,9 +37,11 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
       "esbuild script used for serving"
     ) // TODO consider doing the writing of the script upon call of this task, then use FileChanges to track changes to the script
     val esbuildServeStart =
-      taskKey[Unit]("Runs esbuild serve on target directory")
+      taskKey[Unit]("Starts running esbuild serve on target directory")
     val esbuildServeStop =
       taskKey[Unit]("Stops running esbuild serve on target directory")
+    val esbuildServe =
+      taskKey[Unit]("Runs esbuild serve on target directory")
   }
 
   import autoImport.*
@@ -86,6 +90,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
         )
       }
     }.value,
+    esbuildServe / serverPort := 3000,
     esbuildServeStart := Def.taskDyn {
       val stageTask = scalaJSStage.value.stageTask
       Def.task((stageTask / esbuildServeStart).value)
@@ -93,6 +98,18 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
     esbuildServeStop := Def.taskDyn {
       val stageTask = scalaJSStage.value.stageTask
       Def.task((stageTask / esbuildServeStop).value)
+    }.value,
+    esbuildServe := Def.taskDyn {
+      val stageTask = scalaJSStage.value.stageTask
+      Def.task((stageTask / esbuildServe).value)
+    }.value,
+    esbuildServe / watchBeforeCommand := Def.settingDyn {
+      val stageTask = scalaJSStage.value.stageTask
+      stageTask / (esbuildServe / watchBeforeCommand)
+    }.value,
+    esbuildServe / watchOnTermination := Def.settingDyn {
+      val stageTask = scalaJSStage.value.stageTask
+      stageTask / (esbuildServe / watchOnTermination)
     }.value
   ) ++
     perScalaJSStageSettings(Stage.FastOpt) ++
@@ -162,6 +179,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
            |  });
            |""".stripMargin
       },
+      stageTask / esbuildServe / serverPort := (esbuildServe / serverPort).value,
       stageTask / esbuildServeScript := {
         val stageTaskReport = stageTask.value.data
         val entryPoints = jsFileNames(stageTaskReport)
@@ -186,6 +204,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
         )
         val htmlEntryPointsJsArray =
           htmlEntryPoints.map("'" + _ + "'").mkString("[", ",", "]")
+        val servePort = (esbuildServe / serverPort).value
 
         // language=JS
         s"""
@@ -203,8 +222,8 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
            |  $entryPointsJsArray,
            |  $relativeOutputDirectoryJs,
            |  'assets',
-           |  8001,
-           |  8000,
+           |  0,
+           |  $servePort,
            |  $htmlEntryPointsJsArray
            |);
            |""".stripMargin
@@ -275,7 +294,56 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
             }
           )
         }
-      )
+      ) ++ {
+        var watch: Boolean = false
+
+        Seq(
+          stageTask / esbuildServe := {
+            val logger = state.value.globalLogging.full
+
+            (stageTask / esbuildCompile).value
+
+            val targetDir = (esbuildInstall / crossTarget).value
+
+            val script = (stageTask / esbuildServeScript).value
+
+            if (!watch) {
+              terminateProcess(logger)
+            }
+
+            val p = process.getOrElse {
+              logger.info(s"Starting esbuild serve process")
+              val scriptFileName = "sbt-scalajs-esbuild-serve-script.cjs"
+              IO.write(targetDir / scriptFileName, script)
+
+              val p =
+                esbuildRunner.value.process(logger)(scriptFileName, targetDir)
+              process = Some(p)
+              p
+            }
+
+            if (!watch) {
+              val exitValue = p.exitValue()
+              if (exitValue != 0) {
+                scala.sys.error("Nonzero exit value: " + exitValue)
+              }
+            }
+          },
+          stageTask / (esbuildServe / watchBeforeCommand) := { () =>
+            {
+              if (!watch) {
+                watch = true
+                terminateProcess(Keys.sLog.value)
+              }
+            }
+          },
+          stageTask / (esbuildServe / watchOnTermination) := { (_, _, _, s) =>
+            terminateProcess(Keys.sLog.value)
+            watch = false
+            s
+          }
+        )
+      }
     }
   }
 }
