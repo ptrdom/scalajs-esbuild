@@ -13,13 +13,12 @@ import sbt.Keys.*
 import scalajs.esbuild.{Scripts as _, *}
 import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
 import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundleScript
-import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
+import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildStage
 import scalajs.esbuild.Scripts as BaseScripts
 import scalajs.esbuild.web.ScalaJSEsbuildWebPlugin
 import scalajs.esbuild.web.ScalaJSEsbuildWebPlugin.autoImport.esbuildBundleHtmlEntryPoints
 import scalajs.esbuild.web.ScalaJSEsbuildWebPlugin.autoImport.esbuildServe
 import scalajs.esbuild.web.ScalaJSEsbuildWebPlugin.autoImport.esbuildServeScript
-import scalajs.esbuild.web.ScalaJSEsbuildWebPlugin.autoImport.esbuildServeStart
 import scalajs.esbuild.web.Scripts as WebScripts
 
 import scala.sys.process.Process
@@ -69,7 +68,7 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
         val stageTaskReport = stageTask.value.data
         val mainModule = resolveMainModule(stageTaskReport)
 
-        val targetDirectory = (esbuildInstall / crossTarget).value
+        val targetDirectory = (esbuildStage / crossTarget).value
         val outputDirectory =
           (esbuildBundle / crossTarget).value
         val path =
@@ -119,7 +118,7 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
         val rendererModuleEntryPointsJsArray = rendererModuleEntryPoints
           .map("'" + _ + "'")
           .mkString("[", ",", "]")
-        val targetDirectory = (esbuildInstall / crossTarget).value
+        val targetDirectory = (esbuildStage / crossTarget).value
         val outputDirectory =
           (esbuildBundle / crossTarget).value
         val relativeOutputDirectory =
@@ -204,7 +203,7 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
         val rendererModuleEntryPointsJsArray = rendererModuleEntryPoints
           .map("'" + _ + "'")
           .mkString("[", ",", "]")
-        val targetDirectory = (esbuildInstall / crossTarget).value
+        val targetDirectory = (esbuildStage / crossTarget).value
         val nodeRelativeOutputDirectoryJs = {
           val outputDirectory =
             (esbuildBundle / crossTarget).value
@@ -219,7 +218,7 @@ object ScalaJSEsbuildElectronPlugin extends AutoPlugin {
         }
         val rendererRelativeOutputDirectoryJs = {
           val outputDirectory =
-            (stageTask / esbuildServeStart / crossTarget).value
+            (stageTask / esbuildServe / crossTarget).value
           val relativeOutputDirectory =
             targetDirectory
               .relativize(outputDirectory)

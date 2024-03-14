@@ -23,22 +23,22 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
   override def requires: Plugins = ScalaJSPlugin
 
   object autoImport {
-    val esbuildRunner: SettingKey[EsbuildRunner] =
-      settingKey("Runs Esbuild commands")
-    val esbuildPackageManager: SettingKey[PackageManager] =
-      settingKey("Package manager to use for esbuild tasks")
     val esbuildResourcesDirectory: SettingKey[sbt.File] =
       settingKey("esbuild resource directory")
     val esbuildCopyResources: TaskKey[FileChanges] =
       taskKey("Copies over esbuild resources to target directory")
-    val esbuildInstall: TaskKey[FileChanges] =
+    val esbuildPackageManager: SettingKey[PackageManager] =
+      settingKey("Package manager to use for esbuild tasks")
+    val esbuildPackageManagerInstall: TaskKey[FileChanges] =
       taskKey(
         "Runs package manager's `install` in target directory on copied over esbuild resources"
       )
-    val esbuildCompile: TaskKey[FileChanges] =
+    val esbuildStage: TaskKey[FileChanges] =
       taskKey(
-        "Compiles module and copies output to target directory"
+        "Stages Scala.js linker output and esbuild resources in target directory"
       )
+    val esbuildRunner: SettingKey[EsbuildRunner] =
+      settingKey("Runs esbuild commands")
     val esbuildBundleScript: TaskKey[String] = taskKey(
       "esbuild script used for bundling"
     ) // TODO consider doing the writing of the script upon call of this task, then use FileChanges to track changes to the script
@@ -47,9 +47,9 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
     )
 
     // workaround for https://github.com/sbt/sbt/issues/7164
-    val esbuildFastLinkJSWrapper =
+    val esbuildFastLinkJSWrapper: TaskKey[Seq[Path]] =
       taskKey[Seq[Path]]("Wraps fastLinkJS task to provide fileOutputs")
-    val esbuildFullLinkJSWrapper =
+    val esbuildFullLinkJSWrapper: TaskKey[Seq[Path]] =
       taskKey[Seq[Path]]("Wraps fullLinkJS task to provide fileOutputs")
   }
 
@@ -77,16 +77,16 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
     inConfig(Test)(perConfigSettings)
 
   private lazy val perConfigSettings: Seq[Setting[?]] = Seq(
-    esbuildInstall / crossTarget := {
+    esbuildStage / crossTarget := {
       crossTarget.value /
         "esbuild" /
         (if (configuration.value == Compile) "main" else "test")
     },
-    esbuildBundle / crossTarget := (esbuildInstall / crossTarget).value / "out",
+    esbuildBundle / crossTarget := (esbuildStage / crossTarget).value / "out",
     esbuildCopyResources / fileInputs += (esbuildResourcesDirectory.value.toGlob / **),
     esbuildCopyResources / fileInputExcludeFilter := (esbuildCopyResources / fileInputExcludeFilter).value || (esbuildResourcesDirectory.value.toGlob / "node_modules" / **),
     esbuildCopyResources := {
-      val targetDir = (esbuildInstall / crossTarget).value
+      val targetDir = (esbuildStage / crossTarget).value
 
       val fileChanges = esbuildCopyResources.inputFileChanges
 
@@ -98,12 +98,12 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
 
       fileChanges
     },
-    esbuildInstall := {
+    esbuildPackageManagerInstall := {
       val changeStatus = esbuildCopyResources.value
 
       val s = streams.value
 
-      val targetDir = (esbuildInstall / crossTarget).value
+      val targetDir = (esbuildStage / crossTarget).value
 
       val lockFile = esbuildPackageManager.value.lockFile
 
@@ -149,9 +149,9 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
           path
         }
     },
-    esbuildCompile := Def.taskDyn {
+    esbuildStage := Def.taskDyn {
       val stageTask = scalaJSStage.value.stageTask
-      Def.task((stageTask / esbuildCompile).value)
+      Def.task((stageTask / esbuildStage).value)
     }.value,
     esbuildBundle := Def.taskDyn {
       val stageTask = scalaJSStage.value.stageTask
@@ -166,12 +166,12 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       (stage.stageTask, stage.stageTaskWrapper)
 
     Seq(
-      stageTask / esbuildCompile := {
-        val installFileChanges = esbuildInstall.value
+      stageTask / esbuildStage := {
+        val installFileChanges = esbuildPackageManagerInstall.value
 
         stageTaskWrapper.value
 
-        val targetDir = (esbuildInstall / crossTarget).value
+        val targetDir = (esbuildStage / crossTarget).value
 
         val stageTaskFileChanges = stageTaskWrapper.outputFileChanges
 
@@ -188,7 +188,7 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         val entryPoints = jsFileNames(stageTaskReport)
         val entryPointsJs =
           s"${entryPoints.map("'" + _ + "'").mkString("[", ",", "]")}"
-        val targetDirectory = (esbuildInstall / crossTarget).value
+        val targetDirectory = (esbuildStage / crossTarget).value
         val outputDirectory =
           (esbuildBundle / crossTarget).value
         val relativeOutputDirectory =
@@ -231,9 +231,9 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       stageTask / esbuildBundle := {
         val log = streams.value.log
 
-        val fileChanges = (stageTask / esbuildCompile).value
+        val fileChanges = (stageTask / esbuildStage).value
         val bundlingScript = (stageTask / esbuildBundleScript).value
-        val targetDir = (esbuildInstall / crossTarget).value
+        val targetDir = (esbuildStage / crossTarget).value
         val outDir = (esbuildBundle / crossTarget).value
 
         if (fileChanges.hasChanges || !outDir.exists()) {
