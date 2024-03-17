@@ -53,7 +53,7 @@ lazy val `e2e-test` =
           (((app / Compile) / stageTask) / esbuildBundle).value
 
           val sourcesDirectory =
-            (((app / Compile) / esbuildInstall) / crossTarget).value
+            (((app / Compile) / esbuildStage) / crossTarget).value
           val outputDirectory =
             ((((app / Compile) / stageTask) / esbuildBundle) / crossTarget).value
           val mainModuleID =

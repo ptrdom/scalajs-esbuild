@@ -19,7 +19,7 @@ lazy val perConfigSettings = Seq(
       .Config()
       .withEnv(
         Map(
-          "NODE_PATH" -> ((esbuildInstall / crossTarget).value / "node_modules").absolutePath
+          "NODE_PATH" -> ((esbuildStage / crossTarget).value / "node_modules").absolutePath
         )
       )
   )
