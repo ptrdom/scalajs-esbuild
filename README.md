@@ -120,8 +120,8 @@ transformations like Vite, this plugin attempts to provide good enough stand-ins
          - Port can be configured with `esbuildServe / serverPort` setting.
       - Watches for updates to Scala.js code and any resources in `esbuild` directory.
       - CSS can be hot reloaded, changes to Scala.js code will cause a page reload.
-    - `esbuildServeStart;~esbuildCompile;esbuildServeStop`
-      - Each step of `esbuildServe` as separate commands.
+    - `esbuildServeStart;~esbuildStage;esbuildServeStop`
+      - Each step of `~esbuildServe` as separate commands.
 
 See [examples](sbt-scalajs-esbuild-web/examples) for project templates.
 
