@@ -46,7 +46,7 @@ val perConfigSettings = Seq(Stage.FastOpt, Stage.FullOpt).flatMap { stage =>
 
     (stageTask / esbuildBundle).value
 
-    val targetDir = (esbuildInstall / crossTarget).value
+    val targetDir = (esbuildStage / crossTarget).value
 
     val exitValue = Process(
       "node" :: "node_modules/electron-builder/cli" :: Nil ::: args,

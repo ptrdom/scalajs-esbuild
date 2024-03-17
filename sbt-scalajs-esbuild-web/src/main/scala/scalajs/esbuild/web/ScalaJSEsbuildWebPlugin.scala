@@ -17,8 +17,7 @@ import sbt.nio.Keys.watchBeforeCommand
 import sbt.nio.Keys.watchOnTermination
 import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundle
 import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildBundleScript
-import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildCompile
-import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildInstall
+import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildStage
 import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildRunner
 import scalajs.esbuild.Scripts as BaseScripts
 import scalajs.esbuild.{Scripts as _, *}
@@ -36,11 +35,11 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
     val esbuildServeScript: TaskKey[String] = taskKey(
       "esbuild script used for serving"
     ) // TODO consider doing the writing of the script upon call of this task, then use FileChanges to track changes to the script
-    val esbuildServeStart =
+    val esbuildServeStart: TaskKey[Unit] =
       taskKey[Unit]("Starts running esbuild serve on target directory")
-    val esbuildServeStop =
+    val esbuildServeStop: TaskKey[Unit] =
       taskKey[Unit]("Stops running esbuild serve on target directory")
-    val esbuildServe =
+    val esbuildServe: TaskKey[Unit] =
       taskKey[Unit]("Runs esbuild serve on target directory")
   }
 
@@ -63,7 +62,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
       Def.task {
         (stageTask / esbuildBundle).value
 
-        val targetDir = (stageTask / esbuildInstall / crossTarget).value
+        val targetDir = (stageTask / esbuildStage / crossTarget).value
 
         val bundleOutputs = IO
           .readLines(targetDir / "sbt-scalajs-esbuild-bundle-output.txt")
@@ -85,7 +84,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
 
         Seq(
           Script(
-            ((stageTask / esbuildInstall / crossTarget).value / outputBundle).toPath
+            ((stageTask / esbuildStage / crossTarget).value / outputBundle).toPath
           )
         )
       }
@@ -124,7 +123,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
         val entryPoints = jsFileNames(stageTaskReport)
         val entryPointsJsArray =
           entryPoints.map("'" + _ + "'").mkString("[", ",", "]")
-        val targetDirectory = (esbuildInstall / crossTarget).value
+        val targetDirectory = (esbuildStage / crossTarget).value
         val outputDirectory =
           (esbuildBundle / crossTarget).value
         val relativeOutputDirectory =
@@ -179,15 +178,16 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
            |  });
            |""".stripMargin
       },
+      stageTask / esbuildServe / crossTarget := (esbuildStage / crossTarget).value / "www",
       stageTask / esbuildServe / serverPort := (esbuildServe / serverPort).value,
       stageTask / esbuildServeScript := {
         val stageTaskReport = stageTask.value.data
         val entryPoints = jsFileNames(stageTaskReport)
         val entryPointsJsArray =
           entryPoints.map("'" + _ + "'").mkString("[", ",", "]")
-        val targetDirectory = (esbuildInstall / crossTarget).value
+        val targetDirectory = (esbuildStage / crossTarget).value
         val outputDirectory =
-          (stageTask / esbuildServeStart / crossTarget).value
+          (stageTask / esbuildServe / crossTarget).value
         val relativeOutputDirectory =
           targetDirectory
             .relativize(outputDirectory)
@@ -265,15 +265,14 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
       }
 
       Seq(
-        stageTask / esbuildServeStart / crossTarget := (esbuildInstall / crossTarget).value / "www",
         stageTask / esbuildServeStart := {
           val logger = state.value.globalLogging.full
 
           (stageTask / esbuildServeStop).value
 
-          (stageTask / esbuildCompile).value
+          (stageTask / esbuildStage).value
 
-          val targetDir = (esbuildInstall / crossTarget).value
+          val targetDir = (esbuildStage / crossTarget).value
 
           val script = (stageTask / esbuildServeScript).value
 
@@ -301,9 +300,9 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
           stageTask / esbuildServe := {
             val logger = state.value.globalLogging.full
 
-            (stageTask / esbuildCompile).value
+            (stageTask / esbuildStage).value
 
-            val targetDir = (esbuildInstall / crossTarget).value
+            val targetDir = (esbuildStage / crossTarget).value
 
             val script = (stageTask / esbuildServeScript).value
 
