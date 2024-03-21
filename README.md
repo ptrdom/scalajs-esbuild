@@ -18,9 +18,11 @@ All sbt tasks that depend on Scala.js stages can be scoped both implicitly and e
 can be provided within the command - `fastLinkJS/esbuildBundle`/`fullLinkJS/esbuildBundle`.
 
 Comparing to [scalajs-vite](https://github.com/ptrdom/scalajs-vite), the main difference comes from the fact that [Vite](https://vitejs.dev/) is not a bundler, 
-it is a build tool - it uses esbuild in dev server implementation and [Rollup](https://rollupjs.org/) for production bundles, and it has no concept of
-development bundles. Because in Scala.js projects these development bundles are actually useful in certain workflows, 
-particularly in the implementation of tests, scalajs-esbuild brings esbuild's performance into every aspect of Scala.js development workflow.
+it is a build tool - it uses esbuild in dev server implementation and [Rollup](https://rollupjs.org/) for production bundles. Rollup is a 
+significantly slower bundler than esbuild while also having no concept of development bundles. Development bundles must both 
+behave the same as production bundles and be fast to produce - the latter partially because they are missing optimisations important only in production. 
+Because in Scala.js projects these development bundles are actually very useful in certain workflows, particularly in the implementation of tests, 
+scalajs-esbuild brings esbuild's performance into every aspect of Scala.js development workflow.
 
 ### Base plugin
 
@@ -222,7 +224,7 @@ Plugins use [npm](https://www.npmjs.com/) by default, but provided `PackageManag
 package managers.
 
 ```scala
-//for yarn
+// for yarn
 esbuildPackageManager := new PackageManager {
   override def name = "yarn"
   override def lockFile = "yarn.lock"
