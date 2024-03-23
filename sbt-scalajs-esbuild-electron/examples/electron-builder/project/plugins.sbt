@@ -1,1 +1,1 @@
-addSbtPlugin("me.ptrdom" % "sbt-scalajs-esbuild-electron" % ???)
+addSbtPlugin("me.ptrdom" % "sbt-scalajs-esbuild-electron" % "0.1.0")
