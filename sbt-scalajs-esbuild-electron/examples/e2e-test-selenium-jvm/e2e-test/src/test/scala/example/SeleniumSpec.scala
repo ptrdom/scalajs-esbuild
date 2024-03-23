@@ -14,7 +14,7 @@ import org.scalatestplus.selenium.WebBrowser
 import scala.annotation.tailrec
 import scala.sys.process._
 
-class SeleniumSpec extends AnyFreeSpec with Matchers {
+class SeleniumSpec extends AnyFreeSpec with Matchers with WebBrowser {
 
   val targetDirectory = {
     // test can be executed by IntelliJ Run/Debug configurations and from sbt,
@@ -82,14 +82,12 @@ class SeleniumSpec extends AnyFreeSpec with Matchers {
       options.setExperimentalOption("debuggerAddress", s"localhost:$debugPort")
       implicit val webDriver: WebDriver = new ChromeDriver(options)
       try {
-        new WebBrowser {
-          pageTitle shouldBe "Hello World!"
-          find(xpath("//h1[text()='PRELOAD WORKS!']")) shouldBe defined
-          find(xpath("//h1[text()='RENDERER WORKS!']")) shouldBe defined
-          executeScript(
-            "return window.getComputedStyle(document.getElementById('css-hook'), '::after')['content']"
-          ).asInstanceOf[String] shouldBe "\"CSS WORKS!\""
-        }
+        pageTitle shouldBe "Hello World!"
+        find(xpath("//h1[text()='PRELOAD WORKS!']")) shouldBe defined
+        find(xpath("//h1[text()='RENDERER WORKS!']")) shouldBe defined
+        executeScript(
+          "return window.getComputedStyle(document.getElementById('css-hook'), '::after')['content']"
+        ).asInstanceOf[String] shouldBe "\"CSS WORKS!\""
       } finally {
         webDriver.quit()
       }
