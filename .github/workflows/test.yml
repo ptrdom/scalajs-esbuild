@@ -38,11 +38,7 @@ jobs:
         run: corepack prepare yarn@1.22.19 --activate
       - name: Setup pnpm
         run: corepack prepare pnpm@8.8.0 --activate
-      - name: Compile
-        if: ${{ matrix.jdk == 8 }}
-        run: sbt Test/compile
       - name: Run tests
-        if: ${{ matrix.jdk != 8 }}
         uses: coactions/setup-xvfb@v1
         with:
-          run: sbt scalafmtSbtCheck scalafmtCheckAll test ${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }}
+          run: sbt scalafmtSbtCheck scalafmtCheckAll test "${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }}${{ matrix.jdk == 8 && ' sbt-scalajs-esbuild/* sbt-scalajs-esbuild-electron/basic-project sbt-scalajs-esbuild-electron/e2e-test-playwright-node sbt-scalajs-esbuild-electron/electron-builder' || '' }}"
