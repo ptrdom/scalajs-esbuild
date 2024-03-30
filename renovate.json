@@ -4,5 +4,11 @@
     "config:recommended"
   ],
   "enabledManagers": ["github-actions", "npm"],
-  "ignorePaths": []
+  "ignorePaths": [],
+  "packageRules": [
+    {
+      "matchPackageNames": ["electron", "electron-chromedriver"],
+      "groupName": "electron"
+    }
+  ]
 }
