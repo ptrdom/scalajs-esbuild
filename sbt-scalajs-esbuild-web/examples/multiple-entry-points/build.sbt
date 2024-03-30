@@ -1,4 +1,4 @@
-import java.nio.file.Path
+import java.nio.file.Paths
 
 enablePlugins(ScalaJSEsbuildWebPlugin)
 
@@ -34,8 +34,8 @@ scalaJSModuleInitializers := Seq(
 )
 
 esbuildBundleHtmlEntryPoints := Seq(
-  Path.of("index1.html"),
-  Path.of("index2.html")
+  Paths.get("index1.html"),
+  Paths.get("index2.html")
 )
 
 // Suppress meaningless 'multiple main classes detected' warning
