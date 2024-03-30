@@ -1,3 +1,4 @@
+import complete.DefaultParsers.*
 import sbt.ScriptedPlugin.autoImport.scripted
 import sbt.scripted.sources.ScriptedSourcesPlugin
 
@@ -87,15 +88,23 @@ lazy val `sbt-scalajs-esbuild-electron` =
     .dependsOn(`sbt-scalajs-esbuild-web`)
 
 // workaround for https://github.com/sbt/sbt/issues/7431
-TaskKey[Unit]("scriptedSequentialPerModule") := {
+InputKey[Unit]("scriptedSequentialPerModule") := Def.inputTaskDyn {
+  val args = any.*.parsed.mkString
   Def.taskDyn {
     val projects: Seq[ProjectReference] = `scalajs-esbuild`.aggregate
     Def
       .sequential(
-        projects.map(p => Def.taskDyn((p / scripted).toTask("")))
+        projects.map(p =>
+          Def.taskDyn {
+            (p / scripted).?.value match {
+              case Some(_) => (p / scripted).toTask(args)
+              case None    => Def.task(())
+            }
+          }
+        )
       )
-  }.value
-}
+  }
+}.evaluated
 
 lazy val `scala-steward-hooks` = project
   .in(file("scala-steward-hooks"))
