@@ -8,7 +8,7 @@ lazy val root = (project in file("."))
     `e2e-test`
   )
 
-ThisBuild / scalaVersion := "2.13.13"
+ThisBuild / scalaVersion := "2.13.14"
 
 lazy val app = (project in file("app"))
   .enablePlugins(ScalaJSEsbuildElectronPlugin)

@@ -2,7 +2,7 @@ import java.nio.file.Paths
 
 enablePlugins(ScalaJSEsbuildWebPlugin)
 
-scalaVersion := "2.13.13"
+scalaVersion := "2.13.14"
 
 libraryDependencies ++= Seq(
   "org.scala-js" %%% "scalajs-dom" % "2.8.0",
