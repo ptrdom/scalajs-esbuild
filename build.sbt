@@ -34,9 +34,7 @@ lazy val `scalajs-esbuild` = (project in file("."))
 
 lazy val commonSettings = Seq(
   scriptedLaunchOpts ++= Seq(
-    "-Xmx2g",
-    "-Xms2g",
-    "-Dplugin.version=" + version.value
+    "-Xmx2g -Xms2g -Dplugin.version=" + version.value
   ),
   scriptedBufferLog := false
 )
