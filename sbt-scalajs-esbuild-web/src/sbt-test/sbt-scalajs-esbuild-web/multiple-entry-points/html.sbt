@@ -2,8 +2,8 @@ import scala.util.control.NonFatal
 
 InputKey[Unit]("html") := {
   import org.openqa.selenium.WebDriver
-  import org.openqa.selenium.chrome.ChromeDriver
-  import org.openqa.selenium.chrome.ChromeOptions
+  import org.openqa.selenium.firefox.FirefoxDriver
+  import org.openqa.selenium.firefox.FirefoxOptions
   import org.scalatest.matchers.should.Matchers
   import org.scalatestplus.selenium.WebBrowser
   import org.scalatest.concurrent.Eventually
@@ -24,8 +24,8 @@ InputKey[Unit]("html") := {
     with Eventually
     with IntegrationPatience
     with Inside {
-    val chromeOptions: ChromeOptions = {
-      val value = new ChromeOptions
+    val webDriverOptions: FirefoxOptions = {
+      val value = new FirefoxOptions
       // arguments recommended by https://itnext.io/how-to-run-a-headless-chrome-browser-in-selenium-webdriver-c5521bc12bf0
       value.addArguments(
         "--disable-gpu",
@@ -34,12 +34,11 @@ InputKey[Unit]("html") := {
         "--disable-extensions",
         "--no-sandbox",
         "--disable-dev-shm-usage",
-        "--headless",
-        "--remote-allow-origins=*"
+        "--headless"
       )
       value
     }
-    implicit val webDriver: WebDriver = new ChromeDriver(chromeOptions)
+    implicit val webDriver: WebDriver = new FirefoxDriver(webDriverOptions)
   }
   import webBrowser._
 
@@ -59,9 +58,9 @@ InputKey[Unit]("html") := {
       }
 
       eventually {
-        find(
-          tagName("pre")
-        ).head.text shouldBe "Multiple html entry points defined, unable to pick single root"
+        pageSource should include(
+          "Multiple html entry points defined, unable to pick single root"
+        )
       }
 
       go to s"http://localhost:$port/index1.html"
@@ -84,7 +83,7 @@ InputKey[Unit]("html") := {
       go to s"http://localhost:$port/any"
 
       eventually {
-        find(tagName("pre")).head.text shouldBe "404 - Not Found"
+        pageSource should include("404 - Not Found")
       }
     } withClue s"Page source:\n[$pageSource]"
   } finally {
