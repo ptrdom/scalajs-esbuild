@@ -7,7 +7,7 @@
     "url": "git+https://github.com/ptrdom/scalajs-esbuild.git"
   },
   "devDependencies": {
-    "esbuild": "0.21.1",
+    "esbuild": "0.21.3",
     "electron-builder": "24.13.3",
     "electron-chromedriver": "30.0.3",
     "parse5": "7.1.2",
