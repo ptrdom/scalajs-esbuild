@@ -74,6 +74,6 @@ lazy val `e2e-test` =
           )
         }
       }.value,
-      libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.18" % "test"
+      libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.19" % "test"
     )
     .dependsOn(app)

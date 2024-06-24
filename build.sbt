@@ -114,8 +114,8 @@ lazy val `scala-steward-hooks` = project
     scalaVersion := "2.13.13",
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "2.8.0",
-      "org.scalatest" %% "scalatest" % "3.2.18" % "test",
-      "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.18",
+      "org.scalatest" %% "scalatest" % "3.2.19" % "test",
+      "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.19",
       "org.scalatestplus" %% "selenium-4-9" % "3.2.16.0",
       "org.seleniumhq.selenium" % "selenium-java" % "4.21.0",
       "org.apache.pekko" %% "pekko-actor-typed" % "1.0.2",
