@@ -2,6 +2,8 @@ import scala.util.control.NonFatal
 
 InputKey[Unit]("html") := {
   import org.openqa.selenium.WebDriver
+  import org.openqa.selenium.chrome.ChromeDriver
+  import org.openqa.selenium.chrome.ChromeOptions
   import org.openqa.selenium.firefox.FirefoxDriver
   import org.openqa.selenium.firefox.FirefoxOptions
   import org.scalatest.matchers.should.Matchers
@@ -24,10 +26,9 @@ InputKey[Unit]("html") := {
     with Eventually
     with IntegrationPatience
     with Inside {
-    val webDriverOptions: FirefoxOptions = {
-      val value = new FirefoxOptions
+    implicit val webDriver: WebDriver = {
       // arguments recommended by https://itnext.io/how-to-run-a-headless-chrome-browser-in-selenium-webdriver-c5521bc12bf0
-      value.addArguments(
+      val arguments = Seq(
         "--disable-gpu",
         "--window-size=1920,1200",
         "--ignore-certificate-errors",
@@ -36,9 +37,19 @@ InputKey[Unit]("html") := {
         "--disable-dev-shm-usage",
         "--headless"
       )
-      value
+      sys.env.get("E2E_BROWSER").map(_.toLowerCase).getOrElse("chrome") match {
+        case "chrome" =>
+          val options = new ChromeOptions
+          options.addArguments(arguments: _*)
+          new ChromeDriver(options)
+        case "firefox" =>
+          val options = new FirefoxOptions
+          options.addArguments(arguments: _*)
+          new FirefoxDriver(options)
+        case unhandled =>
+          sys.error(s"Unhandled browser [$unhandled]")
+      }
     }
-    implicit val webDriver: WebDriver = new FirefoxDriver(webDriverOptions)
   }
   import webBrowser._
 
