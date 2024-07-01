@@ -40,5 +40,7 @@ jobs:
         run: corepack prepare pnpm@8.8.0 --activate
       - name: Run tests
         uses: coactions/setup-xvfb@v1
+        env:
+          E2E_TEST_BROWSER: ${{ vars.E2E_TEST_BROWSER }}
         with:
           run: sbt scalafmtSbtCheck scalafmtCheckAll test "${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }}${{ matrix.jdk == 8 && ' sbt-scalajs-esbuild/* sbt-scalajs-esbuild-electron/basic-project sbt-scalajs-esbuild-electron/e2e-test-playwright-node sbt-scalajs-esbuild-electron/electron-builder' || '' }}"
