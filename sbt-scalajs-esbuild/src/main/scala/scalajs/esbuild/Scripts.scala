@@ -69,7 +69,6 @@ object Scripts {
       |    platform: platform,
       |    entryPoints: entryPoints,
       |    bundle: true,
-      |    packages: "bundle",
       |    outdir: path.normalize(outDirectory),
       |    metafile: true,
       |    logOverride: {
