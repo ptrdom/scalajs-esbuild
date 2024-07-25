@@ -33,7 +33,10 @@ InputKey[Unit]("html") := {
         "--disable-dev-shm-usage",
         "--headless"
       )
-      sys.env.get("E2E_TEST_BROWSER").map(_.toLowerCase).getOrElse("chrome") match {
+      sys.env
+        .get("E2E_TEST_BROWSER")
+        .map(_.toLowerCase)
+        .getOrElse("chrome") match {
         case "chrome" =>
           val options = new ChromeOptions
           options.addArguments(arguments: _*)
