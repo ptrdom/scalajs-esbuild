@@ -10,6 +10,6 @@
     "esbuild": "0.23.1",
     "parse5": "7.1.2",
     "electron": "31.4.0",
-    "electron-builder": "24.13.3"
+    "electron-builder": "25.0.5"
   }
 }
