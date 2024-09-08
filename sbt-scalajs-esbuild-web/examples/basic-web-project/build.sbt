@@ -1,6 +1,6 @@
 enablePlugins(ScalaJSEsbuildWebPlugin)
 
-scalaVersion := "2.13.13"
+scalaVersion := "2.13.14"
 
 scalaJSUseMainModuleInitializer := true
 
