@@ -1,7 +1,11 @@
 InputKey[Unit]("html") := {
+  val log = streams.value.log
+
   import org.openqa.selenium.WebDriver
   import org.openqa.selenium.chrome.ChromeDriver
   import org.openqa.selenium.chrome.ChromeOptions
+  import org.openqa.selenium.firefox.FirefoxDriver
+  import org.openqa.selenium.firefox.FirefoxOptions
   import org.scalatest.matchers.should.Matchers
   import org.scalatestplus.selenium.WebBrowser
   import org.scalatest.concurrent.Eventually
@@ -22,22 +26,33 @@ InputKey[Unit]("html") := {
     with Eventually
     with IntegrationPatience
     with Inside {
-    val chromeOptions: ChromeOptions = {
-      val value = new ChromeOptions
+    implicit val webDriver: WebDriver = {
       // arguments recommended by https://itnext.io/how-to-run-a-headless-chrome-browser-in-selenium-webdriver-c5521bc12bf0
-      value.addArguments(
+      val arguments = Seq(
         "--disable-gpu",
         "--window-size=1920,1200",
         "--ignore-certificate-errors",
         "--disable-extensions",
         "--no-sandbox",
         "--disable-dev-shm-usage",
-        "--headless",
-        "--remote-allow-origins=*"
+        "--headless"
       )
-      value
+      sys.env
+        .get("E2E_TEST_BROWSER")
+        .map(_.toLowerCase)
+        .getOrElse("chrome") match {
+        case "chrome" =>
+          val options = new ChromeOptions
+          options.addArguments(arguments: _*)
+          new ChromeDriver(options)
+        case "firefox" =>
+          val options = new FirefoxOptions
+          options.addArguments(arguments: _*)
+          new FirefoxDriver(options)
+        case unhandled =>
+          sys.error(s"Unhandled browser [$unhandled]")
+      }
     }
-    implicit val webDriver: WebDriver = new ChromeDriver(chromeOptions)
   }
   import webBrowser._
 
@@ -71,9 +86,7 @@ InputKey[Unit]("html") := {
       go to s"http://localhost:$port/any.html"
 
       eventually {
-        find(
-          tagName("pre")
-        ).head.text shouldBe "HTML file [./any.html] not found"
+        pageSource should include("HTML file [./any.html] not found")
       }
     } withClue s"Page source:\n[$pageSource]"
   } finally {

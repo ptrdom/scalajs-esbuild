@@ -14,10 +14,12 @@ jobs:
       matrix:
         jdk: [8, 11, 17, 21]
         os: [ubuntu-latest, windows-latest]
+        browser: ["${{ vars.E2E_TEST_BROWSER }}"]
         experimental: [false]
         include:
           - jdk: 11
             os: macos-14
+            browser: chrome
             experimental: true
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}
@@ -40,5 +42,7 @@ jobs:
         run: corepack prepare pnpm@8.8.0 --activate
       - name: Run tests
         uses: coactions/setup-xvfb@v1
+        env:
+          E2E_TEST_BROWSER: ${{ matrix.browser }}
         with:
           run: sbt scalafmtSbtCheck scalafmtCheckAll test "${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }}${{ matrix.jdk == 8 && ' sbt-scalajs-esbuild/* sbt-scalajs-esbuild-electron/basic-project sbt-scalajs-esbuild-electron/e2e-test-playwright-node sbt-scalajs-esbuild-electron/electron-builder' || '' }}"

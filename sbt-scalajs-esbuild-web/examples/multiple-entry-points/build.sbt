@@ -6,7 +6,7 @@ scalaVersion := "2.13.14"
 
 libraryDependencies ++= Seq(
   "org.scala-js" %%% "scalajs-dom" % "2.8.0",
-  "org.scalatest" %%% "scalatest" % "3.2.18" % "test"
+  "org.scalatest" %%% "scalatest" % "3.2.19" % "test"
 )
 
 lazy val perConfigSettings = Seq(
