@@ -45,7 +45,7 @@ lazy val `sbt-scalajs-esbuild` =
     .enablePlugins(SbtPlugin, ScriptedSourcesPlugin, ExampleVersionPlugin)
     .settings(commonSettings)
     .settings(
-      addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.17.0")
+      addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.18.1")
     )
 
 lazy val `sbt-scalajs-esbuild-web` = project
