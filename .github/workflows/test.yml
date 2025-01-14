@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         jdk: [8, 11, 17, 21]
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-22.04, windows-latest]
         browser: ["${{ vars.E2E_TEST_BROWSER }}"]
         experimental: [false]
         include:
