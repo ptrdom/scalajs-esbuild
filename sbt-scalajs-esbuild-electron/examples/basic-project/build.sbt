@@ -3,7 +3,7 @@ import scalajs.esbuild.electron.EsbuildElectronProcessConfiguration
 
 enablePlugins(ScalaJSEsbuildElectronPlugin)
 
-ThisBuild / scalaVersion := "2.13.15"
+ThisBuild / scalaVersion := "2.13.16"
 
 scalaJSModuleInitializers := Seq(
   ModuleInitializer
