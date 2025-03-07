@@ -155,10 +155,17 @@ object Scripts {
       |
       |  await ctx.watch();
       |
-      |  const { host, port } = await ctx.serve({
+      |  const serveResult = await ctx.serve({
       |    servedir: outDirectory,
       |    port: serverPort
       |  });
+      |  const port = serveResult.port;
+      |  let host;
+      |  if (serveResult.hosts) {
+      |    host = serveResult.hosts[0];
+      |  } else {
+      |    host = serveResult.host;
+      |  }
       |
       |  const proxy = http.createServer((req, res) => {
       |    if (meta) {
