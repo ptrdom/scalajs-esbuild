@@ -74,6 +74,9 @@ lazy val `e2e-test` =
           )
         }
       }.value,
-      libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.19" % "test"
+      libraryDependencies ++= Seq(
+        "org.scala-js" %%% "scala-js-macrotask-executor" % "1.0.0" % "test",
+        "org.scalatest" %%% "scalatest" % "3.2.19" % "test"
+      )
     )
     .dependsOn(app)
