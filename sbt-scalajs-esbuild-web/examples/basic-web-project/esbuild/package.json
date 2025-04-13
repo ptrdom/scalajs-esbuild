@@ -6,7 +6,7 @@
   "devDependencies": {
     "esbuild": "0.25.2",
     "parse5": "7.2.1",
-    "jsdom": "26.0.0",
+    "jsdom": "26.1.0",
     "lodash": "4.17.21"
   }
 }
