@@ -12,6 +12,6 @@
     "electron-chromedriver": "35.1.5",
     "parse5": "7.2.1",
     "electron": "35.1.5",
-    "playwright": "1.51.1"
+    "playwright": "1.52.0"
   }
 }
