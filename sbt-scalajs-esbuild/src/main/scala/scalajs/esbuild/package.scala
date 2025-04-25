@@ -2,7 +2,7 @@ package scalajs
 
 import java.nio.file.Path
 
-import org.scalajs.ir.Names.DefaultModuleID
+import org.scalajs.ir.WellKnownNames.DefaultModuleID
 import org.scalajs.jsenv.Input
 import org.scalajs.linker.interface.ModuleKind
 import org.scalajs.linker.interface.Report
