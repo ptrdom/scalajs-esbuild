@@ -5,7 +5,7 @@
   "type": "module",
   "devDependencies": {
     "esbuild": "0.25.3",
-    "parse5": "7.2.1",
+    "parse5": "7.3.0",
     "jsdom": "26.1.0",
     "lodash": "4.17.21"
   }
