@@ -2,7 +2,6 @@ package scalajs
 
 import java.nio.file.Path
 
-import org.scalajs.ir.WellKnownNames.DefaultModuleID
 import org.scalajs.jsenv.Input
 import org.scalajs.linker.interface.ModuleKind
 import org.scalajs.linker.interface.Report
@@ -17,6 +16,8 @@ import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFastLinkJSWrapper
 import scalajs.esbuild.ScalaJSEsbuildPlugin.autoImport.esbuildFullLinkJSWrapper
 
 package object esbuild {
+
+  private[esbuild] val defaultModuleID = "main"
 
   private[esbuild] val isWindows =
     sys.props("os.name").toLowerCase.contains("win")
@@ -94,11 +95,11 @@ package object esbuild {
       report: Report
   ) = {
     report.publicModules
-      .find(_.moduleID == DefaultModuleID)
+      .find(_.moduleID == defaultModuleID)
       .getOrElse(
         sys.error(
           "Cannot determine `jsEnvInput`: Linking result does not have a " +
-            s"module named `$DefaultModuleID`. Set jsEnvInput manually?\n" +
+            s"module named `$defaultModuleID`. Set jsEnvInput manually?\n" +
             s"Full report:\n$report"
         )
       )
