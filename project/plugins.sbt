@@ -1,6 +1,6 @@
 addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.9.3")
 
-addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.4")
+addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.5")
 
 addSbtPlugin("me.ptrdom" % "scripted-sbt-sources" % "0.3.0")
 
