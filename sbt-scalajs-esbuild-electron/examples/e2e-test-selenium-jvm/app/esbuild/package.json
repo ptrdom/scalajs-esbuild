@@ -10,7 +10,7 @@
     "esbuild": "0.25.6",
     "electron-builder": "26.0.12",
     "electron-chromedriver": "37.2.1",
-    "parse5": "7.3.0",
+    "parse5": "8.0.0",
     "electron": "37.2.1",
     "playwright": "1.54.1"
   }
