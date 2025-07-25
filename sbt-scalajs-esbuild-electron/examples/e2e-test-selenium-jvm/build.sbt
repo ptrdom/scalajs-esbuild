@@ -32,7 +32,7 @@ lazy val app = (project in file("app"))
       Set("preload"),
       Set("renderer")
     ),
-    libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.8.0"
+    libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.8.1"
   )
 
 lazy val `e2e-test` =
