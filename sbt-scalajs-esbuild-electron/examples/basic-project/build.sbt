@@ -26,4 +26,4 @@ Compile / esbuildElectronProcessConfiguration := new EsbuildElectronProcessConfi
 // Suppress meaningless 'multiple main classes detected' warning
 Compile / mainClass := None
 
-libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.8.0"
+libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.8.1"
