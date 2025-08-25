@@ -37,10 +37,6 @@ jobs:
           node-version: 22.18.0
       - name: Enable Corepack
         run: corepack enable
-      - name: Setup yarn
-        run: corepack prepare yarn@1.22.19 --activate
-      - name: Setup pnpm
-        run: corepack prepare pnpm@8.8.0 --activate
       - name: Run tests
         uses: coactions/setup-xvfb@v1
         env:
