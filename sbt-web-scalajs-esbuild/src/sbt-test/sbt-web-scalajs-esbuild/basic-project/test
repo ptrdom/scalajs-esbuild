@@ -1,3 +1,7 @@
+# Prepare package.json for merging
+
+$ copy-file client/esbuild/package.json package.json
+
 # npm
 
 $ delete client/esbuild/package-lock.json
@@ -20,6 +24,9 @@ $ delete client/esbuild/package-lock.json
 
 # pnpm
 
+$ delete client/esbuild/package.json
+> setupPackageJson pnpm
+
 $ delete client/esbuild/pnpm-lock.yaml
 > set client/esbuildPackageManager := new scalajs.esbuild.PackageManager { override def name = "pnpm"; override def lockFile = "pnpm-lock.yaml"; override def installCommand = "install";  }
 > clean
@@ -41,6 +48,9 @@ $ exists client/esbuild/pnpm-lock.yaml
 $ delete client/esbuild/pnpm-lock.yaml
 
 # yarn
+
+$ delete client/esbuild/package.json
+> setupPackageJson yarn
 
 $ delete client/esbuild/yarn.lock
 > set client/esbuildPackageManager := new scalajs.esbuild.PackageManager { override def name = "yarn"; override def lockFile = "yarn.lock"; override def installCommand = "install";  }
