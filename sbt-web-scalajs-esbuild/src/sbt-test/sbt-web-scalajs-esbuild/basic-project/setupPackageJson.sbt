@@ -22,7 +22,7 @@ InputKey[Unit]("setupPackageJson") := {
   val sourceJson = readAndParseFile(baseDirectory.value / "package.json")
 
   val packageManagerJson = readAndParseFile(
-    baseDirectory.value / packageManager.toString / "package.json"
+    baseDirectory.value / packageManager.toString.toLowerCase / "package.json"
   )
 
   val mergedJson = sourceJson.deepMerge(packageManagerJson).spaces2
