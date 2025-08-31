@@ -7,12 +7,14 @@ InputKey[Unit]("setupPackageJson") := {
   object PackageManager {
     case object Pnpm extends PackageManager
     case object Yarn extends PackageManager
+    case object Berry extends PackageManager
   }
 
   val packageManager =
     ags.headOption.map(_.toLowerCase) match {
-      case Some("pnpm") => PackageManager.Pnpm
-      case Some("yarn") => PackageManager.Yarn
+      case Some("pnpm")  => PackageManager.Pnpm
+      case Some("yarn")  => PackageManager.Yarn
+      case Some("berry") => PackageManager.Berry
       case invalid => sys.error(s"invalid package manager argument [$invalid]")
     }
 
