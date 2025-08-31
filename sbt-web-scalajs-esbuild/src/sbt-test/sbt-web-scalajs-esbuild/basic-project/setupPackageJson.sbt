@@ -21,7 +21,7 @@ InputKey[Unit]("setupPackageJson") := {
   def readAndParseFile(file: File) =
     parse(IO.readLines(file).mkString).toTry.get
 
-  val sourceJson = readAndParseFile(baseDirectory.value / "package.json")
+  val sourceJson = readAndParseFile(baseDirectory.value / "source-package.json")
 
   val packageManagerJson = readAndParseFile(
     baseDirectory.value / packageManager.toString.toLowerCase / "package.json"
