@@ -1,6 +1,6 @@
 # Prepare package.json for merging
 
-$ copy-file client/esbuild/package.json package.json
+$ copy-file client/esbuild/package.json source-package.json
 
 # npm
 
@@ -63,6 +63,31 @@ $ exists client/esbuild/yarn.lock
 
 $ delete client/esbuild/yarn.lock
 > set client/esbuildPackageManager := new scalajs.esbuild.PackageManager { override def name = "yarn"; override def lockFile = "yarn.lock"; override def installCommand = "install";  }
+> clean
+> set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt
+> server/bgRun
+> html 8080
+$ exists client/esbuild/yarn.lock
+-> exit
+
+# berry
+
+$ delete client/esbuild/package.json
+> setupPackageJson berry
+
+$ delete client/esbuild/yarn.lock
+> set client/esbuildPackageManager := new scalajs.esbuild.PackageManager { override def name = "yarn"; override def lockFile = "yarn.lock"; override def installCommand = "install"; override def install(logger: Logger)(directory: File): Unit = {val exitValue = scala.sys.process.Process((if (scala.sys.props("os.name").toLowerCase.contains("win")) "cmd" :: "/c" :: Nil else Nil) ::: name :: Nil ::: installCommand :: "--no-immutable" :: Nil, directory).run(logger).exitValue();if (exitValue != 0) {sys.error(s"Nonzero exit value: $exitValue")} else ()} }
+> set client/esbuildRunner := new scalajs.esbuild.EsbuildRunner {override def process(logger: Logger)(scriptFileName: String, directory: File): scala.sys.process.Process = {scala.sys.process.Process(prepareCommand(scriptFileName), directory).run(logger)}; override def run(logger: Logger)(scriptFileName: String, directory: File): Unit = {val fullCommand = prepareCommand(scriptFileName);val exitValue = scala.sys.process.Process(fullCommand, directory).run(logger).exitValue();if (exitValue != 0) {sys.error(s"Nonzero exit value: $exitValue")} else ()};private def prepareCommand(scriptFileName: String) = {(if (scala.sys.props("os.name").toLowerCase.contains("win")) "cmd" :: "/c" :: Nil else Nil) ::: "yarn" :: "node" :: scriptFileName :: Nil}}
+> clean
+> set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FastOpt
+> server/bgRun
+> html 8080
+$ exists client/esbuild/yarn.lock
+-> exit
+
+$ delete client/esbuild/yarn.lock
+> set client/esbuildPackageManager := new scalajs.esbuild.PackageManager { override def name = "yarn"; override def lockFile = "yarn.lock"; override def installCommand = "install"; override def install(logger: Logger)(directory: File): Unit = {val exitValue = scala.sys.process.Process((if (scala.sys.props("os.name").toLowerCase.contains("win")) "cmd" :: "/c" :: Nil else Nil) ::: name :: Nil ::: installCommand :: "--no-immutable" :: Nil, directory).run(logger).exitValue();if (exitValue != 0) {sys.error(s"Nonzero exit value: $exitValue")} else ()} }
+> set client/esbuildRunner := new scalajs.esbuild.EsbuildRunner {override def process(logger: Logger)(scriptFileName: String, directory: File): scala.sys.process.Process = {scala.sys.process.Process(prepareCommand(scriptFileName), directory).run(logger)}; override def run(logger: Logger)(scriptFileName: String, directory: File): Unit = {val fullCommand = prepareCommand(scriptFileName);val exitValue = scala.sys.process.Process(fullCommand, directory).run(logger).exitValue();if (exitValue != 0) {sys.error(s"Nonzero exit value: $exitValue")} else ()};private def prepareCommand(scriptFileName: String) = {(if (scala.sys.props("os.name").toLowerCase.contains("win")) "cmd" :: "/c" :: Nil else Nil) ::: "yarn" :: "node" :: scriptFileName :: Nil}}
 > clean
 > set client/scalaJSStage := org.scalajs.sbtplugin.Stage.FullOpt
 > server/bgRun
