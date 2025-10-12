@@ -119,6 +119,6 @@ lazy val `scala-steward-hooks` = project
       "org.apache.pekko" %% "pekko-actor-typed" % "1.2.1",
       "org.apache.pekko" %% "pekko-stream" % "1.2.1",
       "org.apache.pekko" %% "pekko-http" % "1.2.0",
-      "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.0"
+      "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.1"
     )
   )
