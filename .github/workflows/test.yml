@@ -32,7 +32,7 @@ jobs:
         with:
           jvm: temurin:${{ matrix.jdk }}
           apps: sbt
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 22.20.0
       - name: Enable Corepack
