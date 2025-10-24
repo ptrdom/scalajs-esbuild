@@ -68,7 +68,7 @@ object ScalaJSEsbuildWebPlugin extends AutoPlugin {
           .readLines(targetDir / "sbt-scalajs-esbuild-bundle-output.txt")
           .map(_.split(File.pathSeparator).toList match {
             case List(entryPoint, output) => entryPoint -> output
-            case invalid =>
+            case invalid                  =>
               sys.error(s"Invalid bundle output line format [$invalid]")
           })
           .toMap
