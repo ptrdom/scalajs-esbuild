@@ -9,6 +9,6 @@
   "devDependencies": {
     "esbuild": "0.25.11",
     "parse5": "8.0.0",
-    "electron": "38.3.0"
+    "electron": "38.4.0"
   }
 }
