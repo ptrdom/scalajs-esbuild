@@ -1,6 +1,6 @@
 enablePlugins(ScalaJSEsbuildPlugin)
 
-scalaVersion := "2.13.17"
+scalaVersion := "2.13.16"
 
 scalaJSLinkerConfig ~= {
   _.withModuleKind(ModuleKind.ESModule)
