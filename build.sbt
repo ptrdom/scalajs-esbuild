@@ -109,7 +109,7 @@ lazy val `scala-steward-hooks` = project
   .enablePlugins(ScalaJSPlugin)
   .settings(
     publish / skip := true,
-    scalaVersion := "2.13.17",
+    scalaVersion := "2.13.16",
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "2.8.1",
       "org.scalatest" %% "scalatest" % "3.2.19" % "test",
@@ -118,7 +118,7 @@ lazy val `scala-steward-hooks` = project
       "org.seleniumhq.selenium" % "selenium-java" % "4.38.0",
       "org.apache.pekko" %% "pekko-actor-typed" % "1.2.1",
       "org.apache.pekko" %% "pekko-stream" % "1.2.1",
-      "org.apache.pekko" %% "pekko-http" % "1.3.0",
+      "org.apache.pekko" %% "pekko-http" % "1.2.0",
       "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.1"
     )
   )

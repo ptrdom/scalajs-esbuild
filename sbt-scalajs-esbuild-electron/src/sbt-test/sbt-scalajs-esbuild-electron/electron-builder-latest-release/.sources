@@ -1,0 +1,2 @@
+examples/electron-builder
+src/sbt-test/sbt-scalajs-esbuild-electron/electron-builder

@@ -1,0 +1,3 @@
+examples/multiple-entry-points
+src/sbt-test-utilities
+src/sbt-test/sbt-scalajs-esbuild-web/multiple-entry-points

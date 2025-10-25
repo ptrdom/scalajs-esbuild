@@ -1,4 +1,4 @@
-ThisBuild / scalaVersion := "2.13.17"
+ThisBuild / scalaVersion := "2.13.16"
 
 lazy val `basic-project` = (project in file(".")).aggregate(client, server)
 
@@ -25,7 +25,7 @@ lazy val server = project
       Seq(
         "org.apache.pekko" %% "pekko-actor-typed" % "1.2.1",
         "org.apache.pekko" %% "pekko-stream" % "1.2.1",
-        "org.apache.pekko" %% "pekko-http" % "1.3.0"
+        "org.apache.pekko" %% "pekko-http" % "1.2.0"
       )
     }
   )
