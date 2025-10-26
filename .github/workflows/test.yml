@@ -17,11 +17,18 @@ jobs:
         os: [ubuntu-22.04, windows-latest]
         browser: ["${{ vars.E2E_TEST_BROWSER }}"]
         experimental: [false]
+        test-suffix: [release, snapshot]
         include:
           - jdk: 11
             os: macos-14
             browser: chrome
             experimental: true
+            test-suffix: release
+          - jdk: 11
+            os: macos-14
+            browser: chrome
+            experimental: true
+            test-suffix: snapshot
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}
     steps:
@@ -42,4 +49,4 @@ jobs:
         env:
           E2E_TEST_BROWSER: ${{ matrix.browser }}
         with:
-          run: sbt scalafmtSbtCheck scalafmtCheckAll test "${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }}${{ matrix.jdk == 8 && ' sbt-scalajs-esbuild/* sbt-scalajs-esbuild-electron/basic-project sbt-scalajs-esbuild-electron/e2e-test-playwright-node sbt-scalajs-esbuild-electron/electron-builder' || '' }}"
+          run: sbt scalafmtSbtCheck scalafmtCheckAll test "${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }}${{ matrix.jdk == 8 && format(' sbt-scalajs-esbuild/*-{0} sbt-scalajs-esbuild-electron/basic-project-{0} sbt-scalajs-esbuild-electron/e2e-test-playwright-node-{0} sbt-scalajs-esbuild-electron/electron-builder-{0}', matrix.test-suffix) || format(' */*-{0}', matrix.test-suffix) }}"
