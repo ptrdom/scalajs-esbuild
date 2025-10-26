@@ -1,0 +1,2 @@
+examples/e2e-test-selenium-jvm
+src/sbt-test/sbt-scalajs-esbuild-electron/e2e-test-selenium-jvm-snapshot
