@@ -23,6 +23,12 @@ jobs:
             os: macos-14
             browser: chrome
             experimental: true
+            test-suffix: release
+          - jdk: 11
+            os: macos-14
+            browser: chrome
+            experimental: true
+            test-suffix: snapshot
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}
     steps:
