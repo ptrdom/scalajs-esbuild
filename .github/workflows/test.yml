@@ -33,7 +33,7 @@ jobs:
     continue-on-error: ${{ matrix.experimental }}
     steps:
       - uses: actions/checkout@v5
-      - uses: coursier/cache-action@v6
+      - uses: coursier/cache-action@v7
         id: coursier-cache
       - uses: coursier/setup-action@v1
         with:
