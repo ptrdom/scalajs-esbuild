@@ -9,9 +9,9 @@
   "devDependencies": {
     "esbuild": "0.27.1",
     "electron-builder": "26.0.12",
-    "electron-chromedriver": "39.2.4",
+    "electron-chromedriver": "39.2.5",
     "parse5": "8.0.0",
-    "electron": "39.2.4",
+    "electron": "39.2.5",
     "playwright": "1.57.0"
   }
 }
