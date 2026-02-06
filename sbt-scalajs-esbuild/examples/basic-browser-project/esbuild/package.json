@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "devDependencies": {
-    "esbuild": "0.27.2",
+    "esbuild": "0.27.3",
     "jsdom": "27.4.0",
     "lodash": "4.17.23"
   }
