@@ -48,33 +48,54 @@ package object esbuild {
   private[esbuild] def processFileChanges(
       fileChanges: FileChanges,
       sourceDirectory: File,
-      targetDirectory: File
+      targetDirectory: File,
+      logger: Logger
   ): Unit = {
-    def toTargetFile(
-        sourcePath: Path,
-        sourceDirectory: File,
-        targetDirectory: File
-    ): File = {
-      new File(
-        sourcePath.toFile.getAbsolutePath.replace(
-          sourceDirectory.getAbsolutePath,
-          targetDirectory.getAbsolutePath
-        )
-      )
-    }
+    val sourceDirPath = sourceDirectory.toPath.toAbsolutePath.normalize
+    val targetDirPath = targetDirectory.toPath.toAbsolutePath.normalize
 
-    (fileChanges.created ++ fileChanges.modified)
-      .foreach { path =>
-        IO.copyFile(
-          path.toFile,
-          toTargetFile(path, sourceDirectory, targetDirectory)
-        )
+    def isUnderSource(path: Path): Boolean =
+      path.toAbsolutePath.normalize.startsWith(sourceDirPath)
+
+    def toTargetFile(sourcePath: Path): File =
+      targetDirPath
+        .resolve(sourceDirPath.relativize(sourcePath.toAbsolutePath.normalize))
+        .toFile
+
+    // Only `deleted` can contain entries outside sourceDirectory: created,
+    // modified and unmodified come from globbing current files and so always
+    // live under the current sourceDirectory. A `deleted` path that does not
+    // is a sign sbt's fileInputs cache references a previous sourceDirectory
+    // value (e.g. esbuildResourcesDirectory was reassigned, or `clean` only
+    // partially cleared the change-tracking cache).
+    val staleDeleted = fileChanges.deleted.filterNot(isUnderSource)
+
+    if (staleDeleted.nonEmpty) {
+      // Translating those paths through targetDirectory would either produce
+      // a `..`-escaping path or - with the previous String.replace
+      // implementation - silently delete files in the user's source tree.
+      // Recover by copying every file currently visible under sourceDirectory,
+      // equivalent to a post-`clean` first run; sbt commits the file stamps
+      // at end-of-task, so the cache is back in sync for subsequent runs.
+      logger.warn(
+        s"Detected ${staleDeleted.size} stale fileInputs deletion entr" +
+          (if (staleDeleted.size == 1) "y" else "ies") +
+          s" outside sourceDirectory [$sourceDirPath]; " +
+          "falling back to a full copy of sourceDirectory into " +
+          s"[$targetDirPath]."
+      )
+      (fileChanges.created ++ fileChanges.modified ++ fileChanges.unmodified)
+        .foreach { path =>
+          IO.copyFile(path.toFile, toTargetFile(path))
+        }
+    } else {
+      (fileChanges.created ++ fileChanges.modified)
+        .foreach { path =>
+          IO.copyFile(path.toFile, toTargetFile(path))
+        }
+      fileChanges.deleted.foreach { path =>
+        IO.delete(toTargetFile(path))
       }
-
-    fileChanges.deleted.foreach { path =>
-      IO.delete(
-        toTargetFile(path, sourceDirectory, targetDirectory)
-      )
     }
   }
 

@@ -1,0 +1,34 @@
+# Files in esbuildResourcesDirectory must never be deleted by the plugin.
+# Strategy: prime the esbuildCopyResources fileInputs cache pointing at esbuild/,
+# then re-point esbuildResourcesDirectory at a sibling directory and re-run. The
+# previous-run's cached paths are reported as `deleted` against the new source
+# directory and so they fall outside sourceDirectory in processFileChanges.
+# Before the fix this silently deleted files in the user's source tree; after
+# the fix processFileChanges detects the stale cache and falls back to a full
+# copy of the new sourceDirectory (equivalent to a post-`clean` first run),
+# leaving the original source tree untouched.
+
+# Add a synthetic resource so we can prove non-lockfile resources survive.
+$ touch esbuild/index.html
+
+# Prime the inputFileChanges cache against esbuild/.
+> Compile/esbuildCopyResources
+
+# Sanity: the source resources are present before the switch.
+$ exists esbuild/index.html
+$ exists esbuild/package.json
+
+# Mirror the resources into the alternate directory so the second run has valid inputs.
+$ copy-file esbuild/index.html esbuild-alt/index.html
+$ copy-file esbuild/package.json esbuild-alt/package.json
+
+# Switch the resources directory. The cached entries from the previous run still
+# reference paths under esbuild/, which lie outside the new sourceDirectory.
+# processFileChanges should detect this and fall back to a full copy rather
+# than translating those paths (which previously deleted files in esbuild/).
+> set Compile / esbuildResourcesDirectory := baseDirectory.value / "esbuild-alt"
+> Compile/esbuildCopyResources
+
+# Source-tree resources in the original esbuild/ directory must still be intact.
+$ exists esbuild/index.html
+$ exists esbuild/package.json

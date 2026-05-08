@@ -93,7 +93,8 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
       processFileChanges(
         fileChanges,
         esbuildResourcesDirectory.value,
-        targetDir
+        targetDir,
+        streams.value.log
       )
 
       fileChanges
@@ -178,7 +179,8 @@ object ScalaJSEsbuildPlugin extends AutoPlugin {
         processFileChanges(
           stageTaskFileChanges,
           (stageTask / scalaJSLinkerOutputDirectory).value,
-          targetDir
+          targetDir,
+          streams.value.log
         )
 
         installFileChanges ++ stageTaskFileChanges
