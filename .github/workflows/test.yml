@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         jdk: [8, 11, 17, 21, 25]
-        os: [ubuntu-22.04, windows-latest]
+        os: [ubuntu-22.04, windows-2025]
         browser: ["${{ vars.E2E_TEST_BROWSER }}"]
         experimental: [false]
         test-suffix: [release, snapshot]
@@ -45,7 +45,7 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
       - name: Prime corepack package managers (Windows)
-        if: matrix.os == 'windows-latest'
+        if: startsWith(matrix.os, 'windows-')
         shell: bash
         run: |
           corepack prepare pnpm@10.33.2
@@ -56,4 +56,4 @@ jobs:
         env:
           E2E_TEST_BROWSER: ${{ matrix.browser }}
         with:
-          run: sbt scalafmtSbtCheck scalafmtCheckAll test "${{ (matrix.os != 'windows-latest' && steps.coursier-cache.outputs.cache-hit-coursier) && 'scripted' || 'scriptedSequentialPerModule' }}${{ matrix.jdk == 8 && format(' sbt-scalajs-esbuild/*-{0} sbt-scalajs-esbuild-electron/basic-project-{0} sbt-scalajs-esbuild-electron/e2e-test-playwright-node-{0} sbt-scalajs-esbuild-electron/electron-builder-{0}', matrix.test-suffix) || format(' */*-{0}', matrix.test-suffix) }}"
+          run: sbt scalafmtSbtCheck scalafmtCheckAll test "${{ (startsWith(matrix.os, 'windows-') && steps.coursier-cache.outputs.cache-hit-coursier) && 'scripted' || 'scriptedSequentialPerModule' }}${{ matrix.jdk == 8 && format(' sbt-scalajs-esbuild/*-{0} sbt-scalajs-esbuild-electron/basic-project-{0} sbt-scalajs-esbuild-electron/e2e-test-playwright-node-{0} sbt-scalajs-esbuild-electron/electron-builder-{0}', matrix.test-suffix) || format(' */*-{0}', matrix.test-suffix) }}"
