@@ -58,9 +58,8 @@ jobs:
         uses: coactions/setup-xvfb@v1
         env:
           E2E_TEST_BROWSER: ${{ matrix.browser }}
-          SBT_SCRIPTED: ${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }}
         with:
-          run: sbt scalafmtSbtCheck scalafmtCheckAll test "$SBT_SCRIPTED $SBT_SCRIPTED_TARGETS"
+          run: sbt scalafmtSbtCheck scalafmtCheckAll test "${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }} ${{ env.SBT_SCRIPTED_TARGETS }}"
       - name: Run tests (Windows, retry on Windows fast-fail)
         if: startsWith(matrix.os, 'windows-')
         shell: pwsh
