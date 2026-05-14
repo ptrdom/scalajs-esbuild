@@ -31,6 +31,8 @@ jobs:
             test-suffix: snapshot
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}
+    env:
+      SBT_SCRIPTED_TARGETS: ${{ matrix.jdk == 8 && format('sbt-scalajs-esbuild/*-{0} sbt-scalajs-esbuild-electron/basic-project-{0} sbt-scalajs-esbuild-electron/e2e-test-playwright-node-{0} sbt-scalajs-esbuild-electron/electron-builder-{0}', matrix.test-suffix) || format('*/*-{0}', matrix.test-suffix) }}
     steps:
       - uses: actions/checkout@v6
       - uses: coursier/cache-action@v8
@@ -51,9 +53,32 @@ jobs:
           corepack prepare pnpm@10.33.2
           corepack prepare yarn@1.22.22
           corepack prepare yarn@4.14.1
-      - name: Run tests
+      - name: Run tests (Linux/macOS)
+        if: ${{ !startsWith(matrix.os, 'windows-') }}
         uses: coactions/setup-xvfb@v1
         env:
           E2E_TEST_BROWSER: ${{ matrix.browser }}
+          SBT_SCRIPTED: ${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }}
         with:
-          run: sbt scalafmtSbtCheck scalafmtCheckAll test "${{ (startsWith(matrix.os, 'windows-') && steps.coursier-cache.outputs.cache-hit-coursier) && 'scripted' || 'scriptedSequentialPerModule' }}${{ matrix.jdk == 8 && format(' sbt-scalajs-esbuild/*-{0} sbt-scalajs-esbuild-electron/basic-project-{0} sbt-scalajs-esbuild-electron/e2e-test-playwright-node-{0} sbt-scalajs-esbuild-electron/electron-builder-{0}', matrix.test-suffix) || format(' */*-{0}', matrix.test-suffix) }}"
+          run: sbt scalafmtSbtCheck scalafmtCheckAll test "$SBT_SCRIPTED $SBT_SCRIPTED_TARGETS"
+      - name: Run tests (Windows, retry on Windows fast-fail)
+        if: startsWith(matrix.os, 'windows-')
+        shell: pwsh
+        env:
+          E2E_TEST_BROWSER: ${{ matrix.browser }}
+        run: |
+          $maxAttempts = 3
+          $logFile = Join-Path $env:RUNNER_TEMP 'sbt-run.log'
+          $tasks = ("scriptedSequentialPerModule $env:SBT_SCRIPTED_TARGETS" -split '\s+') | Where-Object { $_ -ne '' }
+          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+            if (Test-Path $logFile) { Remove-Item $logFile -Force }
+            & sbt scalafmtSbtCheck scalafmtCheckAll test @tasks *>&1 | Tee-Object -FilePath $logFile
+            $exit = $LASTEXITCODE
+            if ($exit -eq 0) { exit 0 }
+            $log = if (Test-Path $logFile) { Get-Content $logFile -Raw } else { '' }
+            if ($attempt -lt $maxAttempts -and $log -match 'Nonzero exit value: -1073740791') {
+              Write-Host "::warning::Windows fast-fail (-1073740791) detected; retrying sbt (attempt $($attempt+1)/$maxAttempts). See actions/runner-images#13629."
+              continue
+            }
+            exit $exit
+          }
