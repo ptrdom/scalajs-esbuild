@@ -34,7 +34,13 @@ lazy val commonSettings = Seq(
   scriptedLaunchOpts ++= Seq(
     "-Dplugin.version=" + version.value
   ),
-  scriptedBufferLog := false
+  scriptedBufferLog := false,
+  // workaround for https://github.com/sbt/sbt/issues/7431 - on Windows CI the
+  // sbt named-pipe lock races during batch-mode reload; disable batching there
+  scriptedBatchExecution := !(
+    sys.props.get("os.name").exists(_.toLowerCase.contains("win")) &&
+      sys.env.get("CI").contains("true")
+  )
 )
 
 lazy val `sbt-scalajs-esbuild` =
