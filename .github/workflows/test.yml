@@ -32,6 +32,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}
     env:
+      SBT_CHECK_TASKS: scalafmtSbtCheck scalafmtCheckAll test
       SBT_SCRIPTED_TARGETS: ${{ matrix.jdk == 8 && format('sbt-scalajs-esbuild/*-{0} sbt-scalajs-esbuild-electron/basic-project-{0} sbt-scalajs-esbuild-electron/e2e-test-playwright-node-{0} sbt-scalajs-esbuild-electron/electron-builder-{0}', matrix.test-suffix) || format('*/*-{0}', matrix.test-suffix) }}
     steps:
       - uses: actions/checkout@v6
@@ -59,24 +60,26 @@ jobs:
         env:
           E2E_TEST_BROWSER: ${{ matrix.browser }}
         with:
-          run: sbt scalafmtSbtCheck scalafmtCheckAll test "${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }} ${{ env.SBT_SCRIPTED_TARGETS }}"
-      - name: Run tests (Windows, retry on Windows fast-fail)
+          run: sbt ${{ env.SBT_CHECK_TASKS }} "${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }} ${{ env.SBT_SCRIPTED_TARGETS }}"
+      - name: Run tests (Windows, retry scripted on Windows fast-fail)
         if: startsWith(matrix.os, 'windows-')
         shell: pwsh
         env:
           E2E_TEST_BROWSER: ${{ matrix.browser }}
         run: |
+          & sbt ${{ env.SBT_CHECK_TASKS }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $maxAttempts = 3
-          $logFile = Join-Path $env:RUNNER_TEMP 'sbt-run.log'
-          $tasks = ("scriptedSequentialPerModule $env:SBT_SCRIPTED_TARGETS" -split '\s+') | Where-Object { $_ -ne '' }
+          $logFile = Join-Path $env:RUNNER_TEMP 'sbt-scripted.log'
+          $scripted = "scriptedSequentialPerModule $env:SBT_SCRIPTED_TARGETS"
           for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
             if (Test-Path $logFile) { Remove-Item $logFile -Force }
-            & sbt scalafmtSbtCheck scalafmtCheckAll test @tasks *>&1 | Tee-Object -FilePath $logFile
+            & sbt $scripted *>&1 | Tee-Object -FilePath $logFile
             $exit = $LASTEXITCODE
             if ($exit -eq 0) { exit 0 }
             $log = if (Test-Path $logFile) { Get-Content $logFile -Raw } else { '' }
             if ($attempt -lt $maxAttempts -and $log -match 'Nonzero exit value: -1073740791') {
-              Write-Host "::warning::Windows fast-fail (-1073740791) detected; retrying sbt (attempt $($attempt+1)/$maxAttempts). See actions/runner-images#13629."
+              Write-Host "::warning::Windows fast-fail (-1073740791) detected; retrying scripted (attempt $($attempt+1)/$maxAttempts). See actions/runner-images#13629."
               continue
             }
             exit $exit
