@@ -35,12 +35,7 @@ lazy val commonSettings = Seq(
     "-Dplugin.version=" + version.value
   ),
   scriptedBufferLog := false,
-  // workaround for https://github.com/sbt/sbt/issues/7431 - on Windows CI the
-  // sbt named-pipe lock races during batch-mode reload; disable batching there
-  scriptedBatchExecution := !(
-    sys.props.get("os.name").exists(_.toLowerCase.contains("win")) &&
-      sys.env.get("CI").contains("true")
-  )
+  scriptedBatchExecution := !(isWindows && isCI)
 )
 
 lazy val `sbt-scalajs-esbuild` =
@@ -128,3 +123,7 @@ lazy val `scala-steward-hooks` = project
       "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.1"
     )
   )
+
+lazy val isWindows =
+  sys.props.get("os.name").exists(_.toLowerCase.contains("win"))
+lazy val isCI = sys.env.get("CI").contains("true")
