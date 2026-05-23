@@ -78,8 +78,16 @@ jobs:
             $exit = $LASTEXITCODE
             if ($exit -eq 0) { exit 0 }
             $log = if (Test-Path $logFile) { Get-Content $logFile -Raw } else { '' }
-            if ($attempt -lt $maxAttempts -and $log -match 'Nonzero exit value: -1073740791') {
-              Write-Host "::warning::Windows fast-fail (-1073740791) detected; retrying scripted (attempt $($attempt+1)/$maxAttempts). See actions/runner-images#13629."
+            $retryReason = $null
+            if ($log -match 'Nonzero exit value: -1073740791') {
+              $retryReason = 'Windows fast-fail (-1073740791); see actions/runner-images#13629'
+            } elseif ($log -match 'Could not create lock for .*sbt-(load|server).*_lock' -or $log -match 'ServerAlreadyBootingException') {
+              $retryReason = 'sbt named-pipe lock race on boot; see sbt/sbt#6777'
+            }
+            if ($attempt -lt $maxAttempts -and $retryReason) {
+              Write-Host "::warning::$retryReason. Retrying scripted (attempt $($attempt+1)/$maxAttempts)."
+              Get-Process -Name java,sbt,sbtn,node,esbuild -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+              Start-Sleep -Seconds 10
               continue
             }
             exit $exit
