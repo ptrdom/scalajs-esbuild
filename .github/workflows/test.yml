@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         jdk: [8, 11, 17, 21, 25]
-        os: [ubuntu-22.04, windows-latest]
+        os: [ubuntu-22.04, windows-2025]
         browser: ["${{ vars.E2E_TEST_BROWSER }}"]
         experimental: [false]
         test-suffix: [release, snapshot]
@@ -31,6 +31,9 @@ jobs:
             test-suffix: snapshot
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}
+    env:
+      SBT_CHECK_TASKS: scalafmtSbtCheck scalafmtCheckAll test
+      SBT_SCRIPTED_TARGETS: ${{ matrix.jdk == 8 && format('sbt-scalajs-esbuild/*-{0} sbt-scalajs-esbuild-electron/basic-project-{0} sbt-scalajs-esbuild-electron/e2e-test-playwright-node-{0} sbt-scalajs-esbuild-electron/electron-builder-{0}', matrix.test-suffix) || format('*/*-{0}', matrix.test-suffix) }}
     steps:
       - uses: actions/checkout@v6
       - uses: coursier/cache-action@v8
@@ -44,9 +47,48 @@ jobs:
           node-version: 24.15.0
       - name: Enable Corepack
         run: corepack enable
-      - name: Run tests
+      - name: Prime corepack package managers (Windows)
+        if: startsWith(matrix.os, 'windows-')
+        shell: bash
+        run: |
+          corepack prepare pnpm@10.33.2
+          corepack prepare yarn@1.22.22
+          corepack prepare yarn@4.14.1
+      - name: Run tests (Linux/macOS)
+        if: ${{ !startsWith(matrix.os, 'windows-') }}
         uses: coactions/setup-xvfb@v1
         env:
           E2E_TEST_BROWSER: ${{ matrix.browser }}
         with:
-          run: sbt scalafmtSbtCheck scalafmtCheckAll test "${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }}${{ matrix.jdk == 8 && format(' sbt-scalajs-esbuild/*-{0} sbt-scalajs-esbuild-electron/basic-project-{0} sbt-scalajs-esbuild-electron/e2e-test-playwright-node-{0} sbt-scalajs-esbuild-electron/electron-builder-{0}', matrix.test-suffix) || format(' */*-{0}', matrix.test-suffix) }}"
+          run: sbt ${{ env.SBT_CHECK_TASKS }} "${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }} ${{ env.SBT_SCRIPTED_TARGETS }}"
+      - name: Run tests (Windows, retry scripted on Windows fast-fail)
+        if: startsWith(matrix.os, 'windows-')
+        shell: pwsh
+        env:
+          E2E_TEST_BROWSER: ${{ matrix.browser }}
+        run: |
+          & sbt ${{ env.SBT_CHECK_TASKS }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $maxAttempts = 3
+          $logFile = Join-Path $env:RUNNER_TEMP 'sbt-scripted.log'
+          $scripted = "scriptedSequentialPerModule $env:SBT_SCRIPTED_TARGETS"
+          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+            if (Test-Path $logFile) { Remove-Item $logFile -Force }
+            & sbt $scripted *>&1 | Tee-Object -FilePath $logFile
+            $exit = $LASTEXITCODE
+            if ($exit -eq 0) { exit 0 }
+            $log = if (Test-Path $logFile) { Get-Content $logFile -Raw } else { '' }
+            $retryReason = $null
+            if ($log -match 'Nonzero exit value: -1073740791') {
+              $retryReason = 'Windows fast-fail (-1073740791); see actions/runner-images#13629'
+            } elseif ($log -match 'Could not create lock for .*sbt-(load|server).*_lock' -or $log -match 'ServerAlreadyBootingException') {
+              $retryReason = 'sbt named-pipe lock race on boot; see sbt/sbt#6777'
+            }
+            if ($attempt -lt $maxAttempts -and $retryReason) {
+              Write-Host "::warning::$retryReason. Retrying scripted (attempt $($attempt+1)/$maxAttempts)."
+              Get-Process -Name java,sbt,sbtn,node,esbuild -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+              Start-Sleep -Seconds 10
+              continue
+            }
+            exit $exit
+          }

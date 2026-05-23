@@ -88,7 +88,15 @@ InputKey[Unit]("html") := {
       eventually {
         pageSource should include("HTML file [./any.html] not found")
       }
-    } withClue s"Page source:\n[$pageSource]"
+    } withClue {
+      val maybePageSource =
+        try pageSource
+        catch {
+          case t: Throwable =>
+            s"<pageSource threw ${t.getClass.getName}: ${t.getMessage}>"
+        }
+      s"Page source:\n[$maybePageSource]"
+    }
   } finally {
     webBrowser.webDriver.quit()
   }

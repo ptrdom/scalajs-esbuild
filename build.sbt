@@ -34,7 +34,8 @@ lazy val commonSettings = Seq(
   scriptedLaunchOpts ++= Seq(
     "-Dplugin.version=" + version.value
   ),
-  scriptedBufferLog := false
+  scriptedBufferLog := false,
+  scriptedBatchExecution := !(isWindows && isCI)
 )
 
 lazy val `sbt-scalajs-esbuild` =
@@ -122,3 +123,7 @@ lazy val `scala-steward-hooks` = project
       "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.1"
     )
   )
+
+lazy val isWindows =
+  sys.props.get("os.name").exists(_.toLowerCase.contains("win"))
+lazy val isCI = sys.env.get("CI").contains("true")
