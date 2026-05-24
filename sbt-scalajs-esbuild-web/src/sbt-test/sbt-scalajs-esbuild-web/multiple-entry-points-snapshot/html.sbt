@@ -77,26 +77,26 @@ InputKey[Unit]("html") := {
         )
       }
 
-      go to s"http://localhost:$port/index1.html"
-
       eventually {
+        go to s"http://localhost:$port/index1.html"
+
         find(
           tagName("h1")
         ).head.text shouldBe "MULTIPLE-ENTRY-POINTS MAIN1 WORKS!"
       }
 
-      go to s"http://localhost:$port/index2.html"
-
       eventually {
+        go to s"http://localhost:$port/index2.html"
+
         find(
           tagName("h1")
         ).head.text shouldBe "MULTIPLE-ENTRY-POINTS MAIN2 WORKS!"
       }
 
-      // do not redirect 404s to index if there are multiple html entry points
-      go to s"http://localhost:$port/any"
-
       eventually {
+        // do not redirect 404s to index if there are multiple html entry points
+        go to s"http://localhost:$port/any"
+
         pageSource should include("404 - Not Found")
       }
     } withClue {
