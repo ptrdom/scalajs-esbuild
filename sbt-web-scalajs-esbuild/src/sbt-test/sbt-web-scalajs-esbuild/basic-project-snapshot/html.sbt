@@ -56,9 +56,7 @@ InputKey[Unit]("html") := {
     {
       eventually {
         go to s"http://localhost:$port"
-      }
 
-      eventually {
         find(tagName("h1")).head.text shouldBe "BASIC-PROJECT-SBT-WEB WORKS!"
       }
     } withClue {

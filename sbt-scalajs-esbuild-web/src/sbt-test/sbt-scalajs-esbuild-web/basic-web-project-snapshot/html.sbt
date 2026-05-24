@@ -75,17 +75,17 @@ InputKey[Unit]("html") := {
         find(tagName("h1")).head.text shouldBe "BASIC-WEB-PROJECT WORKS!"
       }
 
-      // should return index instead of 404
-      go to s"http://localhost:$port/any"
-
       eventually {
+        // should return index instead of 404
+        go to s"http://localhost:$port/any"
+
         find(tagName("h1")).head.text shouldBe "BASIC-WEB-PROJECT WORKS!"
       }
 
-      // should return 404 for html URLs if html file does not exist
-      go to s"http://localhost:$port/any.html"
-
       eventually {
+        // should return 404 for html URLs if html file does not exist
+        go to s"http://localhost:$port/any.html"
+
         pageSource should include("HTML file [./any.html] not found")
       }
     } withClue {
