@@ -78,9 +78,11 @@ jobs:
       - name: Setup geckodriver
         if: matrix.browser == 'firefox'
         id: setup-geckodriver
-        # No semver tags upstream (only v0.0.0); pin by SHA. Renovate's
-        # github-actions manager tracks main and proposes digest bumps.
-        uses: browser-actions/setup-geckodriver@bf8266f624ca122cedb6d0381a031f18f6c431cd
+        # No semver tags upstream (only v0.0.0); upstream publishes the built
+        # action on the `latest` branch. Pin by SHA and use the `# latest`
+        # comment so Renovate's github-actions manager tracks that branch's
+        # head and proposes digest bumps.
+        uses: browser-actions/setup-geckodriver@fac5b0424c584257f32cf12c5eb4ba86014c34f8 # latest
         with:
           geckodriver-version: '0.36.0'
       - name: Run tests (Linux/macOS)
