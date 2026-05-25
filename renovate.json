@@ -8,7 +8,9 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.*\\.ya?ml$/"
+      ],
       "matchStrings": ["corepack prepare (?<depName>[\\w@/-]+?)@(?<currentValue>\\S+)"],
       "datasourceTemplate": "npm"
     }
