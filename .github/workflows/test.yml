@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jdk: [8, 11, 17, 21, 25]
+        jdk: [8, 25]
         os: [ubuntu-22.04, windows-2025]
         browser: ["${{ vars.E2E_TEST_BROWSER }}"]
         experimental: [false]
