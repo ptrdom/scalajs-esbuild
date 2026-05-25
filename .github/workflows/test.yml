@@ -57,11 +57,41 @@ jobs:
           corepack prepare pnpm@10.33.2
           corepack prepare yarn@1.22.22
           corepack prepare yarn@4.15.0
+          corepack prepare yarn@4.14.1
+      # Pin the browser + driver used by Selenium scripted tests so an updated
+      # runner image can't break the build. Versions bumped here are reviewed
+      # like any other dependency. matrix.browser is empty by default and may
+      # be set via the E2E_TEST_BROWSER repo variable; treat empty as 'chrome'.
+      - name: Setup Chrome
+        if: matrix.browser == 'chrome' || matrix.browser == ''
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: '149.0.7827.22'
+          install-chromedriver: true
+      - name: Setup Firefox
+        if: matrix.browser == 'firefox'
+        id: setup-firefox
+        uses: browser-actions/setup-firefox@v1
+        with:
+          firefox-version: '151.0.1'
+      - name: Setup geckodriver
+        if: matrix.browser == 'firefox'
+        id: setup-geckodriver
+        # No semver tags upstream (only v0.0.0); pin by SHA. Renovate's
+        # github-actions manager tracks main and proposes digest bumps.
+        uses: browser-actions/setup-geckodriver@bf8266f624ca122cedb6d0381a031f18f6c431cd
+        with:
+          geckodriver-version: '0.36.0'
       - name: Run tests (Linux/macOS)
         if: ${{ !startsWith(matrix.os, 'windows-') }}
         uses: coactions/setup-xvfb@v1
         env:
           E2E_TEST_BROWSER: ${{ matrix.browser }}
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CHROMEDRIVER_BIN: ${{ steps.setup-chrome.outputs.chromedriver-path }}
+          FIREFOX_BIN: ${{ steps.setup-firefox.outputs.firefox-path }}
+          GECKODRIVER_BIN: ${{ steps.setup-geckodriver.outputs.geckodriver-path }}
         with:
           run: sbt ${{ env.SBT_CHECK_TASKS }} "${{ steps.coursier-cache.outputs.cache-hit-coursier && 'scripted' || 'scriptedSequentialPerModule' }} ${{ env.SBT_SCRIPTED_TARGETS }}"
       - name: Run tests (Windows, retry scripted on Windows fast-fail)
@@ -69,6 +99,10 @@ jobs:
         shell: pwsh
         env:
           E2E_TEST_BROWSER: ${{ matrix.browser }}
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CHROMEDRIVER_BIN: ${{ steps.setup-chrome.outputs.chromedriver-path }}
+          FIREFOX_BIN: ${{ steps.setup-firefox.outputs.firefox-path }}
+          GECKODRIVER_BIN: ${{ steps.setup-geckodriver.outputs.geckodriver-path }}
         run: |
           & sbt ${{ env.SBT_CHECK_TASKS }}
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

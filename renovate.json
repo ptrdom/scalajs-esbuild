@@ -5,6 +5,22 @@
   ],
   "enabledManagers": ["github-actions", "npm", "custom.regex"],
   "ignorePaths": [],
+  "customDatasources": {
+    "chrome-for-testing-stable": {
+      "defaultRegistryUrlTemplate": "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json",
+      "format": "json",
+      "transformTemplates": [
+        "{\"releases\": [{\"version\": $.channels.Stable.version}]}"
+      ]
+    },
+    "firefox-releases": {
+      "defaultRegistryUrlTemplate": "https://product-details.mozilla.org/1.0/firefox_versions.json",
+      "format": "json",
+      "transformTemplates": [
+        "{\"releases\": [{\"version\": $.LATEST_FIREFOX_VERSION}]}"
+      ]
+    }
+  },
   "customManagers": [
     {
       "customType": "regex",
@@ -24,6 +40,29 @@
       "depNameTemplate": "yarn",
       "packageNameTemplate": "@yarnpkg/cli",
       "datasourceTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
+      "matchStrings": ["chrome-version:\\s*['\"](?<currentValue>[^'\"]+)['\"]"],
+      "depNameTemplate": "chrome-for-testing",
+      "datasourceTemplate": "custom.chrome-for-testing-stable",
+      "versioningTemplate": "loose"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
+      "matchStrings": ["firefox-version:\\s*['\"](?<currentValue>[^'\"]+)['\"]"],
+      "depNameTemplate": "firefox",
+      "datasourceTemplate": "custom.firefox-releases"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
+      "matchStrings": ["geckodriver-version:\\s*['\"](?<currentValue>[^'\"]+)['\"]"],
+      "depNameTemplate": "mozilla/geckodriver",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$"
     }
   ],
   "packageRules": [
@@ -35,6 +74,14 @@
       "matchPackageNames": ["yarn"],
       "matchCurrentVersion": "/^1\\./",
       "allowedVersions": "<2.0.0"
+    },
+    {
+      "matchPackageNames": ["chrome-for-testing"],
+      "groupName": "chrome"
+    },
+    {
+      "matchPackageNames": ["firefox", "mozilla/geckodriver"],
+      "groupName": "firefox"
     }
   ]
 }

@@ -42,11 +42,27 @@ InputKey[Unit]("html") := {
         .map(_.toLowerCase)
         .getOrElse("chrome") match {
         case "chrome" =>
+          sys.env
+            .get("CHROMEDRIVER_BIN")
+            .filter(_.nonEmpty)
+            .foreach(System.setProperty("webdriver.chrome.driver", _))
           val options = new ChromeOptions
+          sys.env
+            .get("CHROME_BIN")
+            .filter(_.nonEmpty)
+            .foreach(options.setBinary)
           options.addArguments(arguments: _*)
           new ChromeDriver(options)
         case "firefox" =>
+          sys.env
+            .get("GECKODRIVER_BIN")
+            .filter(_.nonEmpty)
+            .foreach(System.setProperty("webdriver.gecko.driver", _))
           val options = new FirefoxOptions
+          sys.env
+            .get("FIREFOX_BIN")
+            .filter(_.nonEmpty)
+            .foreach(options.setBinary)
           options.addArguments(arguments: _*)
           new FirefoxDriver(options)
         case unhandled =>
