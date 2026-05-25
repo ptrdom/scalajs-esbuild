@@ -11,7 +11,18 @@
       "managerFilePatterns": [
         "/^\\.github/workflows/.*\\.ya?ml$/"
       ],
-      "matchStrings": ["corepack prepare (?<depName>[\\w@/-]+?)@(?<currentValue>\\S+)"],
+      "matchStrings": [
+        "corepack prepare (?<depName>pnpm)@(?<currentValue>\\S+)",
+        "corepack prepare (?<depName>yarn)@(?<currentValue>1\\.\\S+)"
+      ],
+      "datasourceTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
+      "matchStrings": ["corepack prepare yarn@(?<currentValue>[2-9]\\d*\\.\\S+)"],
+      "depNameTemplate": "yarn",
+      "packageNameTemplate": "@yarnpkg/cli",
       "datasourceTemplate": "npm"
     }
   ],
