@@ -57,6 +57,14 @@ jobs:
           corepack prepare pnpm@10.33.2
           corepack prepare yarn@1.22.22
           corepack prepare yarn@4.15.0
+          corepack prepare yarn@4.14.1
+      - name: Cache Selenium Manager browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/selenium
+          key: selenium-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('**/sbt-test/**/html.sbt') }}
+          restore-keys: |
+            selenium-${{ runner.os }}-${{ matrix.browser }}-
       - name: Run tests (Linux/macOS)
         if: ${{ !startsWith(matrix.os, 'windows-') }}
         uses: coactions/setup-xvfb@v1

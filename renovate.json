@@ -5,6 +5,22 @@
   ],
   "enabledManagers": ["github-actions", "npm", "custom.regex"],
   "ignorePaths": [],
+  "customDatasources": {
+    "chrome-for-testing-stable": {
+      "defaultRegistryUrlTemplate": "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json",
+      "format": "json",
+      "transformTemplates": [
+        "{\"releases\": [{\"version\": $.channels.Stable.version}]}"
+      ]
+    },
+    "firefox-releases": {
+      "defaultRegistryUrlTemplate": "https://product-details.mozilla.org/1.0/firefox_versions.json",
+      "format": "json",
+      "transformTemplates": [
+        "{\"releases\": [{\"version\": $.LATEST_FIREFOX_VERSION}]}"
+      ]
+    }
+  },
   "customManagers": [
     {
       "customType": "regex",
@@ -19,11 +35,26 @@
     },
     {
       "customType": "regex",
-      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
+      "managerFilePatterns": ["/^\\.github/workflows/.*\\.ya?ml$/"],
       "matchStrings": ["corepack prepare yarn@(?<currentValue>[2-9]\\d*\\.\\S+)"],
       "depNameTemplate": "yarn",
       "packageNameTemplate": "@yarnpkg/cli",
       "datasourceTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/sbt-test/.+/html\\.sbt$/"],
+      "matchStrings": ["val\\s+chromeForTestingVersion\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "chrome-for-testing",
+      "datasourceTemplate": "custom.chrome-for-testing-stable",
+      "versioningTemplate": "loose"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/sbt-test/.+/html\\.sbt$/"],
+      "matchStrings": ["val\\s+firefoxVersion\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "firefox",
+      "datasourceTemplate": "custom.firefox-releases"
     }
   ],
   "packageRules": [
@@ -35,6 +66,14 @@
       "matchPackageNames": ["yarn"],
       "matchCurrentVersion": "/^1\\./",
       "allowedVersions": "<2.0.0"
+    },
+    {
+      "matchPackageNames": ["chrome-for-testing"],
+      "groupName": "chrome"
+    },
+    {
+      "matchPackageNames": ["firefox"],
+      "groupName": "firefox"
     }
   ]
 }
