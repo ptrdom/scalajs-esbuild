@@ -35,7 +35,7 @@
     },
     {
       "customType": "regex",
-      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
+      "managerFilePatterns": ["/^\\.github/workflows/.*\\.ya?ml$/"],
       "matchStrings": ["corepack prepare yarn@(?<currentValue>[2-9]\\d*\\.\\S+)"],
       "depNameTemplate": "yarn",
       "packageNameTemplate": "@yarnpkg/cli",
@@ -43,26 +43,18 @@
     },
     {
       "customType": "regex",
-      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
-      "matchStrings": ["chrome-version:\\s*['\"](?<currentValue>[^'\"]+)['\"]"],
+      "managerFilePatterns": ["/sbt-test/.+/html\\.sbt$/"],
+      "matchStrings": ["val\\s+chromeForTestingVersion\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
       "depNameTemplate": "chrome-for-testing",
       "datasourceTemplate": "custom.chrome-for-testing-stable",
       "versioningTemplate": "loose"
     },
     {
       "customType": "regex",
-      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
-      "matchStrings": ["firefox-version:\\s*['\"](?<currentValue>[^'\"]+)['\"]"],
+      "managerFilePatterns": ["/sbt-test/.+/html\\.sbt$/"],
+      "matchStrings": ["val\\s+firefoxVersion\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
       "depNameTemplate": "firefox",
       "datasourceTemplate": "custom.firefox-releases"
-    },
-    {
-      "customType": "regex",
-      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
-      "matchStrings": ["geckodriver-version:\\s*['\"](?<currentValue>[^'\"]+)['\"]"],
-      "depNameTemplate": "mozilla/geckodriver",
-      "datasourceTemplate": "github-releases",
-      "extractVersionTemplate": "^v(?<version>.+)$"
     }
   ],
   "packageRules": [
@@ -80,7 +72,7 @@
       "groupName": "chrome"
     },
     {
-      "matchPackageNames": ["firefox", "mozilla/geckodriver"],
+      "matchPackageNames": ["firefox"],
       "groupName": "firefox"
     }
   ]

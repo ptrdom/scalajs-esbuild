@@ -18,6 +18,11 @@ InputKey[Unit]("html") := {
       case _          => sys.error("missing arguments")
     }
 
+  // Pinned so Selenium Manager fetches a deterministic browser+driver pair
+  // both locally and in CI, instead of resolving against whatever is on PATH.
+  val chromeForTestingVersion = "149.0.7827.22"
+  val firefoxVersion = "151.0.1"
+
   val webBrowser = new WebBrowser
     with Matchers
     with Eventually
@@ -38,27 +43,13 @@ InputKey[Unit]("html") := {
         .map(_.toLowerCase)
         .getOrElse("chrome") match {
         case "chrome" =>
-          sys.env
-            .get("CHROMEDRIVER_BIN")
-            .filter(_.nonEmpty)
-            .foreach(System.setProperty("webdriver.chrome.driver", _))
           val options = new ChromeOptions
-          sys.env
-            .get("CHROME_BIN")
-            .filter(_.nonEmpty)
-            .foreach(options.setBinary)
+          options.setBrowserVersion(chromeForTestingVersion)
           options.addArguments(arguments: _*)
           new ChromeDriver(options)
         case "firefox" =>
-          sys.env
-            .get("GECKODRIVER_BIN")
-            .filter(_.nonEmpty)
-            .foreach(System.setProperty("webdriver.gecko.driver", _))
           val options = new FirefoxOptions
-          sys.env
-            .get("FIREFOX_BIN")
-            .filter(_.nonEmpty)
-            .foreach(options.setBinary)
+          options.setBrowserVersion(firefoxVersion)
           options.addArguments(arguments: _*)
           new FirefoxDriver(options)
         case unhandled =>
