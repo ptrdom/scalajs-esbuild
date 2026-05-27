@@ -60,7 +60,8 @@
   "packageRules": [
     {
       "matchPackageNames": ["electron", "electron-chromedriver"],
-      "groupName": "electron"
+      "groupName": "electron",
+      "respectLatest": false
     },
     {
       "matchPackageNames": ["yarn"],
