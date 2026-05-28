@@ -21,16 +21,21 @@ InputKey[Unit]("setupPackageJson") := {
   def readAndParseFile(file: File) =
     parse(IO.readLines(file).mkString).toTry.get
 
+  val packageManagerDir =
+    baseDirectory.value / packageManager.toString.toLowerCase
+
+  val esbuildDir = baseDirectory.value / "client" / "esbuild"
+
   val sourceJson = readAndParseFile(baseDirectory.value / "source-package.json")
 
-  val packageManagerJson = readAndParseFile(
-    baseDirectory.value / packageManager.toString.toLowerCase / "package.json"
-  )
+  val packageManagerJson = readAndParseFile(packageManagerDir / "package.json")
 
   val mergedJson = sourceJson.deepMerge(packageManagerJson).spaces2
 
-  IO.write(
-    baseDirectory.value / "client" / "esbuild" / "package.json",
-    mergedJson.getBytes
-  )
+  IO.write(esbuildDir / "package.json", mergedJson.getBytes)
+
+  packageManagerDir
+    .listFiles()
+    .filter(file => file.isFile && file.getName != "package.json")
+    .foreach(file => IO.copyFile(file, esbuildDir / file.getName))
 }
