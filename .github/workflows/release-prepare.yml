@@ -1,0 +1,70 @@
+name: Prepare release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without leading 'v', e.g. 0.1.3"
+        required: true
+        type: string
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+jobs:
+  prepare-release:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Validate version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::Version [$VERSION] is not a valid semver (expected MAJOR.MINOR.PATCH)"
+            exit 1
+          fi
+      # A GitHub App token is used instead of the default GITHUB_TOKEN so that
+      # pushing the tag triggers the release workflow (pushes made with the
+      # default GITHUB_TOKEN do not trigger further workflow runs) and so that
+      # the commit and tag are attributed to the app's bot rather than a person.
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ steps.app-token.outputs.token }}
+      - name: Ensure tag does not already exist
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::Tag [v$VERSION] already exists"
+            exit 1
+          fi
+      - uses: coursier/cache-action@v8
+      - uses: coursier/setup-action@v3
+        with:
+          jvm: temurin:11
+          apps: sbt
+      - name: Write example versions
+        env:
+          VERSION: ${{ inputs.version }}
+        run: sbt "exampleVersionWrite $VERSION"
+      - name: Commit, tag and push
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          USER_ID=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${USER_ID}+${APP_SLUG}[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "::error::Examples already reference version [$VERSION]; nothing to bump"
+            exit 1
+          fi
+          git commit -am "Bump examples to version $VERSION"
+          git tag -a "v$VERSION" -m "$VERSION"
+          git push origin HEAD:main "refs/tags/v$VERSION"
