@@ -54,7 +54,7 @@ jobs:
         if: startsWith(matrix.os, 'windows-')
         shell: bash
         run: |
-          corepack prepare pnpm@11.5.1
+          corepack prepare pnpm@11.5.2
           corepack prepare yarn@1.22.22
           corepack prepare yarn@4.16.0
       - name: Cache Selenium Manager browsers
