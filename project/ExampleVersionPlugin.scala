@@ -97,8 +97,8 @@ object ExampleVersionPlugin extends AutoPlugin {
             "No previous stable version available, skipping example version check"
           )
         case Some(exampleVersionV) =>
-          val invalidExamples = listExamples(examplesDirectory).filterNot {
-            example =>
+          val invalidExamples =
+            listExamples(examplesDirectory).filterNot { example =>
               listSbtFiles(example).exists { sbtFile =>
                 readLines(sbtFile).exists { line =>
                   regex
@@ -109,7 +109,7 @@ object ExampleVersionPlugin extends AutoPlugin {
                     )
                 }
               }
-          }
+            }
           if (invalidExamples.nonEmpty) {
             throw new RuntimeException(
               s"Not all examples contained a valid plugin version [$exampleVersionV] - " +
