@@ -25,7 +25,7 @@ jobs:
       # pushing the tag triggers the release workflow (pushes made with the
       # default GITHUB_TOKEN do not trigger further workflow runs) and so that
       # the commit and tag are attributed to the app's bot rather than a person.
-      - uses: actions/create-github-app-token@v2
+      - uses: actions/create-github-app-token@v3
         id: app-token
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
