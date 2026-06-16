@@ -55,6 +55,13 @@
       "matchStrings": ["val\\s+firefoxVersion\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
       "depNameTemplate": "firefox",
       "datasourceTemplate": "custom.firefox-releases"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/.*\\.ya?ml$/"],
+      "matchStrings": ["apps: sbt:(?<currentValue>\\S+)"],
+      "depNameTemplate": "org.scala-sbt:sbt-launch",
+      "datasourceTemplate": "maven"
     }
   ],
   "packageRules": [
@@ -75,6 +82,10 @@
     {
       "matchPackageNames": ["firefox"],
       "groupName": "firefox"
+    },
+    {
+      "matchPackageNames": ["org.scala-sbt:sbt-launch"],
+      "allowedVersions": "<2.0.0"
     }
   ]
 }
