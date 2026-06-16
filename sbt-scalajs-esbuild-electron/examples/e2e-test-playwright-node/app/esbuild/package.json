@@ -10,6 +10,6 @@
     "esbuild": "0.28.1",
     "parse5": "8.0.1",
     "electron": "42.4.0",
-    "playwright": "1.60.0"
+    "playwright": "1.61.0"
   }
 }
