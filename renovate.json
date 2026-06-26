@@ -59,9 +59,35 @@
     {
       "customType": "regex",
       "managerFilePatterns": ["/^\\.github/workflows/.*\\.ya?ml$/"],
-      "matchStrings": ["apps: sbt:(?<currentValue>\\S+)"],
+      "matchStrings": [
+        "apps: sbt:(?<currentValue>\\S+)",
+        "sbt-version: (?<currentValue>\\S+)"
+      ],
       "depNameTemplate": "org.scala-sbt:sbt-launch",
       "datasourceTemplate": "maven"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/.*\\.ya?ml$/"],
+      "matchStrings": ["scalafmt-version: (?<currentValue>\\S+)"],
+      "depNameTemplate": "scalameta/scalafmt",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^project/build\\.properties$/"],
+      "matchStrings": ["sbt\\.version\\s*=\\s*(?<currentValue>\\S+)"],
+      "depNameTemplate": "org.scala-sbt:sbt-launch",
+      "datasourceTemplate": "maven"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.scalafmt\\.conf$/"],
+      "matchStrings": ["version\\s*=\\s*(?<currentValue>\\S+)"],
+      "depNameTemplate": "scalameta/scalafmt",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
     }
   ],
   "packageRules": [
@@ -85,7 +111,12 @@
     },
     {
       "matchPackageNames": ["org.scala-sbt:sbt-launch"],
+      "groupName": "sbt",
       "allowedVersions": "<2.0.0"
+    },
+    {
+      "matchPackageNames": ["scalameta/scalafmt"],
+      "groupName": "scalafmt"
     }
   ]
 }
