@@ -1,15 +1,111 @@
 name: Release
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without leading 'v', e.g. 0.1.3"
+        required: true
+        type: string
   push:
     branches: [main]
-    tags: ["*"]
+  pull_request:
+    branches: [main]
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   publish:
     runs-on: ubuntu-22.04
     steps:
+      - name: Validate version
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::Version [$VERSION] is not a valid semver (expected MAJOR.MINOR.PATCH)"
+            exit 1
+          fi
+      # Single source of truth for what this run does, decided once up front:
+      #   RELEASE       - workflow_dispatch, first attempt: bump, tag, publish.
+      #   RELEASE_RETRY - workflow_dispatch whose tag is already on origin from a
+      #                   prior attempt: skip bump/push, republish the tag (so a
+      #                   release whose ci-release failed can be re-run).
+      #   DRY_RUN       - pull_request: exercise the full graph, no upload.
+      #   SNAPSHOT      - push to main: publish a snapshot.
+      # ls-remote reads the remote by URL so this runs before checkout; the
+      # masked github.token works whether or not the repo is public.
+      - name: Determine run kind
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          case "$GITHUB_EVENT_NAME" in
+            pull_request) KIND=DRY_RUN ;;
+            push) KIND=SNAPSHOT ;;
+            workflow_dispatch)
+              if git ls-remote --exit-code --tags \
+                  "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}" \
+                  "refs/tags/v$VERSION" >/dev/null 2>&1; then
+                KIND=RELEASE_RETRY
+              else
+                KIND=RELEASE
+              fi ;;
+            *) echo "::error::Unsupported event [$GITHUB_EVENT_NAME]"; exit 1 ;;
+          esac
+          echo "Run kind: $KIND"
+          echo "RUN_KIND=$KIND" >> "$GITHUB_ENV"
+      # A GitHub App token is used so the commit and tag are attributed to the
+      # app's bot and can be pushed to a protected main. Only RELEASE pushes;
+      # the other kinds fall back to github.token (read/fetch only).
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        if: env.RUN_KIND == 'RELEASE'
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token || github.token }}
+      # Dry runs generate a throwaway signing key and dummy credentials so the
+      # full ci-release graph runs without secrets (and works on fork PRs), and
+      # assemble the bundle locally (sonaBundle) instead of uploading it.
+      - name: Prepare dry-run credentials
+        if: env.RUN_KIND == 'DRY_RUN'
+        run: |
+          cat >/tmp/key.conf <<'EOF'
+          %no-protection
+          Key-Type: RSA
+          Key-Length: 2048
+          Name-Real: scalajs-esbuild dry run
+          Name-Email: dry-run@example.invalid
+          Expire-Date: 0
+          %commit
+          EOF
+          gpg --batch --gen-key /tmp/key.conf
+          KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/ {print $5; exit}')
+          {
+            echo "PGP_SECRET=$(gpg --armor --export-secret-keys "$KEY_ID" | base64 -w0)"
+            echo "PGP_PASSPHRASE="
+            echo "SONATYPE_USERNAME=dry-run"
+            echo "SONATYPE_PASSWORD=dry-run"
+            echo "CI_SONATYPE_RELEASE=sonaBundle"
+          } >> "$GITHUB_ENV"
+      - name: Prepare release credentials
+        if: env.RUN_KIND != 'DRY_RUN'
+        env:
+          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+          PGP_SECRET: ${{ secrets.PGP_SECRET }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+        run: |
+          {
+            echo "PGP_PASSPHRASE=$PGP_PASSPHRASE"
+            echo "PGP_SECRET=$PGP_SECRET"
+            echo "SONATYPE_PASSWORD=$SONATYPE_PASSWORD"
+            echo "SONATYPE_USERNAME=$SONATYPE_USERNAME"
+          } >> "$GITHUB_ENV"
       - uses: coursier/cache-action@v8
       - uses: coursier/setup-action@v3
         with:
@@ -17,9 +113,51 @@ jobs:
           # Pin to the sbt 1.x runner: the latest runner is sbt 2.x, which
           # requires JDK 17+. Kept in sync with sbt releases by Renovate.
           apps: sbt:1.12.13
-      - run: sbt exampleVersionCheck ci-release
+      # RELEASE and DRY_RUN both bump the example versions and create the tag
+      # locally, exercising that path; only RELEASE pushes the result.
+      - name: Bump examples and create tag
+        if: env.RUN_KIND == 'RELEASE' || env.RUN_KIND == 'DRY_RUN'
         env:
-          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
-          PGP_SECRET: ${{ secrets.PGP_SECRET }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          VERSION: ${{ env.RUN_KIND == 'RELEASE' && inputs.version || '0.0.0' }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          sbt "exampleVersionWrite $VERSION"
+          if [ "$RUN_KIND" = "RELEASE" ]; then
+            USER_ID=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+            git config user.name "${APP_SLUG}[bot]"
+            git config user.email "${USER_ID}+${APP_SLUG}[bot]@users.noreply.github.com"
+            if git diff --quiet; then
+              echo "::error::Examples already reference version [$VERSION]; nothing to bump"
+              exit 1
+            fi
+          else
+            git config user.name "scalajs-esbuild dry run"
+            git config user.email "dry-run@example.invalid"
+          fi
+          git commit -am "Bump examples to version $VERSION"
+          git tag -a "v$VERSION" -m "$VERSION"
+          # Neither event is a tag push, so force ci-release down the stable path.
+          echo "CI_COMMIT_TAG=v$VERSION" >> "$GITHUB_ENV"
+      # Push before publishing: a release promoted without its tag pushed (an
+      # intermittent push failure after publish) is worse than a pushed tag whose
+      # publish failed, which can simply be re-run.
+      - name: Push commit and tag
+        if: env.RUN_KIND == 'RELEASE'
+        env:
+          VERSION: ${{ inputs.version }}
+        # --atomic so the branch and tag are pushed in a single transaction:
+        # if the branch push is rejected, the tag is not created either.
+        run: git push --atomic origin HEAD:main "refs/tags/v$VERSION"
+      # Retry path: a previous attempt already pushed the tag, so check it out
+      # and publish exactly that commit rather than recreating it.
+      - name: Checkout existing release tag
+        if: env.RUN_KIND == 'RELEASE_RETRY'
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git fetch origin "refs/tags/v$VERSION:refs/tags/v$VERSION"
+          git checkout --force "refs/tags/v$VERSION"
+          echo "CI_COMMIT_TAG=v$VERSION" >> "$GITHUB_ENV"
+      - name: Release
+        run: sbt exampleVersionCheck ci-release
