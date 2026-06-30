@@ -1,25 +1,106 @@
 name: Release
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without leading 'v', e.g. 0.1.3"
+        required: true
+        type: string
   push:
     branches: [main]
-    tags: ["*"]
+  pull_request:
+    branches: [main]
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+# Deny-all default: each job opts back in to exactly what it needs. The push
+# rides the GitHub App token (scoped by the app installation, not GITHUB_TOKEN),
+# so no job needs contents: write here.
+permissions: {}
 jobs:
-  publish:
+  # Decide once what this run does, then fan out to one job per kind so each
+  # appears as its own job in the UI and gets least-privilege permissions.
+  # The shared pipeline lives in _run.yml; the jobs below only select it.
+  #   RELEASE       - workflow_dispatch, first attempt: bump, tag, push, publish.
+  #   RELEASE_RETRY - workflow_dispatch whose tag is already on origin from a
+  #                   prior attempt: skip bump/push, republish the tag (so a
+  #                   release whose ci-release failed can be re-run).
+  #   DRY_RUN       - pull_request: exercise the full graph, no upload.
+  #   SNAPSHOT      - push to main: publish a snapshot.
+  determine:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    outputs:
+      kind: ${{ steps.kind.outputs.kind }}
     steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - uses: coursier/cache-action@v8
-      - uses: coursier/setup-action@v3
-        with:
-          jvm: temurin:11
-          # Pin to the sbt 1.x runner: the latest runner is sbt 2.x, which
-          # requires JDK 17+. Kept in sync with sbt releases by Renovate.
-          apps: sbt:1.12.13
-      - run: sbt exampleVersionCheck ci-release
+      - name: Validate version
+        if: github.event_name == 'workflow_dispatch'
         env:
-          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
-          PGP_SECRET: ${{ secrets.PGP_SECRET }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::Version [$VERSION] is not a valid semver (expected MAJOR.MINOR.PATCH)"
+            exit 1
+          fi
+      # ls-remote reads the remote by URL so this needs no checkout; the masked
+      # github.token works whether or not the repo is public.
+      - name: Determine run kind
+        id: kind
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          case "$GITHUB_EVENT_NAME" in
+            pull_request) KIND=DRY_RUN ;;
+            push) KIND=SNAPSHOT ;;
+            workflow_dispatch)
+              if git ls-remote --exit-code --tags \
+                  "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}" \
+                  "refs/tags/v$VERSION" >/dev/null 2>&1; then
+                KIND=RELEASE_RETRY
+              else
+                KIND=RELEASE
+              fi ;;
+            *) echo "::error::Unsupported event [$GITHUB_EVENT_NAME]"; exit 1 ;;
+          esac
+          echo "Run kind: $KIND"
+          echo "kind=$KIND" >> "$GITHUB_OUTPUT"
+  release:
+    needs: determine
+    if: needs.determine.outputs.kind == 'RELEASE'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_run.yml
+    with:
+      kind: RELEASE
+      version: ${{ inputs.version }}
+    secrets: inherit
+  release-retry:
+    needs: determine
+    if: needs.determine.outputs.kind == 'RELEASE_RETRY'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_run.yml
+    with:
+      kind: RELEASE_RETRY
+      version: ${{ inputs.version }}
+    secrets: inherit
+  dry-run:
+    needs: determine
+    if: needs.determine.outputs.kind == 'DRY_RUN'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_run.yml
+    with:
+      kind: DRY_RUN
+    secrets: inherit
+  snapshot:
+    needs: determine
+    if: needs.determine.outputs.kind == 'SNAPSHOT'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_run.yml
+    with:
+      kind: SNAPSHOT
+    secrets: inherit
