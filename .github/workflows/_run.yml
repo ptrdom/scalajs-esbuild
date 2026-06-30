@@ -16,7 +16,7 @@ on:
         default: ""
 jobs:
   run:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       # A GitHub App token is used so the commit and tag are attributed to the
       # app's bot and can be pushed to a protected main. Only RELEASE pushes;
