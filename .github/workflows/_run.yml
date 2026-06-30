@@ -1,4 +1,4 @@
-name: Publish
+name: Release run
 # Reusable pipeline shared by every run kind, called from release.yml. All the
 # kind-specific behaviour is gated on inputs.kind so the logic lives in one
 # place; release.yml decides the kind and selects which caller job runs.
@@ -15,7 +15,7 @@ on:
         type: string
         default: ""
 jobs:
-  publish:
+  run:
     runs-on: ubuntu-22.04
     steps:
       # A GitHub App token is used so the commit and tag are attributed to the
