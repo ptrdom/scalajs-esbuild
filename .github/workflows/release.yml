@@ -20,7 +20,7 @@ permissions: {}
 jobs:
   # Decide once what this run does, then fan out to one job per kind so each
   # appears as its own job in the UI and gets least-privilege permissions.
-  # The shared pipeline lives in _run.yml; the jobs below only select it.
+  # The shared pipeline lives in _release-run.yml; the jobs below only select it.
   #   RELEASE       - workflow_dispatch, first attempt: bump, tag, push, publish.
   #   RELEASE_RETRY - workflow_dispatch whose tag is already on origin from a
   #                   prior attempt: skip bump/push, republish the tag (so a
@@ -71,7 +71,7 @@ jobs:
     if: needs.determine.outputs.kind == 'RELEASE'
     permissions:
       contents: read
-    uses: ./.github/workflows/_run.yml
+    uses: ./.github/workflows/_release-run.yml
     with:
       kind: RELEASE
       version: ${{ inputs.version }}
@@ -81,7 +81,7 @@ jobs:
     if: needs.determine.outputs.kind == 'RELEASE_RETRY'
     permissions:
       contents: read
-    uses: ./.github/workflows/_run.yml
+    uses: ./.github/workflows/_release-run.yml
     with:
       kind: RELEASE_RETRY
       version: ${{ inputs.version }}
@@ -91,7 +91,7 @@ jobs:
     if: needs.determine.outputs.kind == 'DRY_RUN'
     permissions:
       contents: read
-    uses: ./.github/workflows/_run.yml
+    uses: ./.github/workflows/_release-run.yml
     with:
       kind: DRY_RUN
     secrets: inherit
@@ -100,7 +100,7 @@ jobs:
     if: needs.determine.outputs.kind == 'SNAPSHOT'
     permissions:
       contents: read
-    uses: ./.github/workflows/_run.yml
+    uses: ./.github/workflows/_release-run.yml
     with:
       kind: SNAPSHOT
     secrets: inherit
