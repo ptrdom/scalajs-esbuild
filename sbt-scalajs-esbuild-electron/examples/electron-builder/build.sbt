@@ -30,9 +30,9 @@ Compile / mainClass := None
 
 libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.8.1"
 
-val viteElectronBuildPackage =
+val esbuildElectronBuildPackage =
   taskKey[Unit]("Generate package directory with electron-builder")
-val viteElectronBuildDistributable =
+val esbuildElectronBuildDistributable =
   taskKey[Unit]("Package in distributable format with electron-builder")
 
 val perConfigSettings = Seq(Stage.FastOpt, Stage.FullOpt).flatMap { stage =>
@@ -58,8 +58,8 @@ val perConfigSettings = Seq(Stage.FastOpt, Stage.FullOpt).flatMap { stage =>
   }
 
   Seq(
-    stageTask / viteElectronBuildPackage := fn("--dir" :: Nil).value,
-    stageTask / viteElectronBuildDistributable := fn().value
+    stageTask / esbuildElectronBuildPackage := fn("--dir" :: Nil).value,
+    stageTask / esbuildElectronBuildDistributable := fn().value
   )
 }
 inConfig(Compile)(perConfigSettings)
