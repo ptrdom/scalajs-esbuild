@@ -16,6 +16,15 @@
       "dmg"
     ]
   },
+  // Single Linux target on purpose: the default (AppImage + snap) builds both
+  // concurrently, and they race extracting build tools into the shared
+  // ~/.cache/electron-builder, intermittently failing with
+  // "ENOENT: ... mkdir .../appimage-<ver>/appimage-<ver>-<rand>".
+  "linux": {
+    "target": [
+      "AppImage"
+    ]
+  },
   "win": {
     "target": [
       {
