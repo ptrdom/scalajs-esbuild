@@ -59,7 +59,7 @@ jobs:
         run: |
           corepack prepare pnpm@11.10.0
           corepack prepare yarn@1.22.22
-          corepack prepare yarn@4.17.0
+          corepack prepare yarn@4.17.1
       - name: Cache Selenium Manager browsers
         uses: actions/cache@v6
         with:
