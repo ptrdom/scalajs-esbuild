@@ -65,7 +65,7 @@ lazy val `sbt-web-scalajs-esbuild` =
     .enablePlugins(SbtPlugin, ScriptedSourcesPlugin, ExampleVersionPlugin)
     .settings(commonSettings)
     .settings(
-      addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.3.0"),
+      addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.4.0"),
       scriptedDependencies := {
         val () = scriptedDependencies.value
         val () = (`sbt-scalajs-esbuild-web` / publishLocal).value
@@ -116,7 +116,7 @@ lazy val `scala-steward-hooks` = project
       "org.scalatest" %% "scalatest" % "3.2.20" % "test",
       "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.20",
       "org.scalatestplus" %% "selenium-4-9" % "3.2.16.0",
-      "org.seleniumhq.selenium" % "selenium-java" % "4.45.0",
+      "org.seleniumhq.selenium" % "selenium-java" % "4.46.0",
       "org.apache.pekko" %% "pekko-actor-typed" % "1.6.0",
       "org.apache.pekko" %% "pekko-stream" % "1.6.0",
       "org.apache.pekko" %% "pekko-http" % "1.3.0",
