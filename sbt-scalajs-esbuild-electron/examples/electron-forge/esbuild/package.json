@@ -15,6 +15,6 @@
   },
   "comment": "extract-zip@2 (yauzl@2) silently truncates zip extraction on Node >=24.16, so @electron/get produces an incomplete Electron download and packaging emits nothing while exiting 0. Redirect it to the drop-in @electron-internal/extract-zip until Electron Forge 8 ships the fix. See https://github.com/electron/forge/issues/4277.",
   "overrides": {
-    "extract-zip": "npm:@electron-internal/extract-zip@1.0.3"
+    "extract-zip": "npm:@electron-internal/extract-zip@1.0.4"
   }
 }
