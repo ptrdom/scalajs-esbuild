@@ -18,6 +18,11 @@ jobs:
     runs-on: ubuntu-24.04
     name: Launch Scala Steward
     steps:
+      # DRY_RUN passes repo-config to the action, which reads it from the
+      # workspace, so the repo must be checked out. LIVE needs no checkout:
+      # Scala Steward clones the target repo itself.
+      - uses: actions/checkout@v7
+        if: inputs.kind == 'DRY_RUN'
       - uses: coursier/cache-action@v8
       - uses: coursier/setup-action@v3
         with:
