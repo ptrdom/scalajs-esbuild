@@ -1,0 +1,2 @@
+examples/electron-forge
+src/sbt-test/sbt-scalajs-esbuild-electron/electron-forge-snapshot

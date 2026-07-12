@@ -36,7 +36,7 @@ jobs:
     continue-on-error: ${{ matrix.experimental }}
     env:
       SBT_CHECK_TASKS: scalafmtSbtCheck scalafmtCheckAll test
-      SBT_SCRIPTED_TARGETS: ${{ matrix.jdk == 8 && format('sbt-scalajs-esbuild/*-{0} sbt-scalajs-esbuild-electron/basic-project-{0} sbt-scalajs-esbuild-electron/e2e-test-playwright-node-{0} sbt-scalajs-esbuild-electron/electron-builder-{0}', matrix.test-suffix) || format('*/*-{0}', matrix.test-suffix) }}
+      SBT_SCRIPTED_TARGETS: ${{ matrix.jdk == 8 && format('sbt-scalajs-esbuild/*-{0} sbt-scalajs-esbuild-electron/basic-project-{0} sbt-scalajs-esbuild-electron/e2e-test-playwright-node-{0} sbt-scalajs-esbuild-electron/electron-builder-{0} sbt-scalajs-esbuild-electron/electron-forge-{0}', matrix.test-suffix) || format('*/*-{0}', matrix.test-suffix) }}
     steps:
       - uses: actions/checkout@v7
       - uses: coursier/cache-action@v8
