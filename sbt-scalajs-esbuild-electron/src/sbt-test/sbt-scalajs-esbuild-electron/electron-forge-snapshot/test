@@ -1,0 +1,15 @@
+$ delete esbuild/package-lock.json
+> clean
+> fastLinkJS/esbuildElectronForgePackage
+$ exists target/scala-2.13/esbuild/main/forge-out
+> fastLinkJS/esbuildElectronForgeMakeDistributable
+$ exists target/scala-2.13/esbuild/main/forge-out/make/zip
+$ exists esbuild/package-lock.json
+
+$ delete esbuild/package-lock.json
+> clean
+> fullLinkJS/esbuildElectronForgePackage
+$ exists target/scala-2.13/esbuild/main/forge-out
+> fullLinkJS/esbuildElectronForgeMakeDistributable
+$ exists target/scala-2.13/esbuild/main/forge-out/make/zip
+$ exists esbuild/package-lock.json
