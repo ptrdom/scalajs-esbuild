@@ -5,6 +5,12 @@ Scala.js compiler with their npm dependencies into a single .js file using [esbu
 
 [![sbt-scalajs-esbuild Scala version support](https://index.scala-lang.org/ptrdom/scalajs-esbuild/sbt-scalajs-esbuild/latest.svg)](https://index.scala-lang.org/ptrdom/scalajs-esbuild/sbt-scalajs-esbuild)
 
+## Comparison to scalajs-vite
+
+Compared to [scalajs-vite](https://github.com/ptrdom/scalajs-vite), the historical difference was build performance. Before Vite 8, [Vite](https://vitejs.dev/) used two different bundlers internally: esbuild for its dev server and [Rollup](https://rollupjs.org/) for production builds. This meant that any workflow that needed a bundle went through Rollup — which is significantly slower than esbuild. This is a problem for certain workflows, like running tests implemented with Scala testing frameworks, which are iterative and thus more sensitive to build performance. scalajs-esbuild uses esbuild for all builds, giving consistent, fast build times across every stage of the Scala.js development workflow.
+
+Since [Vite 8](https://vite.dev/blog/announcing-vite8), Vite has unified on [Rolldown](https://rolldown.rs/), a Rust-based bundler that replaces both esbuild and Rollup and runs at native speed, on par with esbuild. This largely closes the production-build performance gap that used to distinguish scalajs-esbuild from scalajs-vite.
+
 ## Getting started
 
 Plugin should feel quite familiar to the users of well known [scalajs-bundler](https://scalacenter.github.io/scalajs-bundler),
@@ -16,13 +22,6 @@ but any advanced configuration should be provided by modifying said scripts thro
 
 All sbt tasks that depend on Scala.js stages can be scoped both implicitly and explicitly, for example `esbuildBundle` will use `scalaJSStage` or the stage
 can be provided within the command - `fastLinkJS/esbuildBundle`/`fullLinkJS/esbuildBundle`.
-
-Comparing to [scalajs-vite](https://github.com/ptrdom/scalajs-vite), the main difference comes from the fact that [Vite](https://vitejs.dev/) is not a bundler, 
-it is a build tool - it uses esbuild in dev server implementation and [Rollup](https://rollupjs.org/) for production bundles. Rollup is a 
-significantly slower bundler than esbuild while also having no concept of development bundles. Development bundles must both 
-behave the same as production bundles and be fast to produce - the latter partially because they are missing optimisations important only in production. 
-Because in Scala.js projects these development bundles are actually very useful in certain workflows, particularly in the implementation of tests, 
-scalajs-esbuild brings esbuild's performance into every aspect of Scala.js development workflow.
 
 ### Base plugin
 
