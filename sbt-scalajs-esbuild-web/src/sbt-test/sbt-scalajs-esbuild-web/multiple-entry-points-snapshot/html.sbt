@@ -24,7 +24,7 @@ InputKey[Unit]("html") := {
   // Pinned so Selenium Manager fetches a deterministic browser+driver pair
   // both locally and in CI, instead of resolving against whatever is on PATH.
   val chromeForTestingVersion = "151.0.7922.34"
-  val firefoxVersion = "152.0"
+  val firefoxVersion = "153.0"
 
   val webBrowser = new WebBrowser
     with Matchers
