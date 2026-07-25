@@ -105,6 +105,44 @@ InputKey[Unit]("scriptedSequentialPerModule") := Def.inputTaskDyn {
   }
 }.evaluated
 
+// publishLocal the plugins under test before the forked e2e JVM runs, so the
+// copied example builds against the current source (mirroring how scripted's
+// `scriptedDependencies` stages the plugin). Hung off a shared task because
+// `test` and `testOnly` are distinct tasks, so both must depend on it for a
+// local `e2e/testOnly ...` to see fresh plugin artifacts too.
+val e2ePublishPluginsLocal =
+  taskKey[Unit]("publishLocal the web plugin and its base before e2e tests")
+
+// Browser-driven hot-reload e2e tests. Deliberately NOT part of the
+// `scalajs-esbuild` aggregate, so the fast `test` / JDK-8 CI check never runs
+// them; they run only via an explicit `e2e/test` on browser-enabled CI rows.
+lazy val e2e = project
+  .in(file("e2e"))
+  .settings(
+    publish / skip := true,
+    scalaVersion := "2.13.18",
+    Test / fork := true,
+    Test / parallelExecution := false,
+    Test / javaOptions ++= Seq(
+      s"-Dplugin.version=${version.value}",
+      s"-Dplugin.channel=${sys.env.getOrElse("E2E_CHANNEL", "snapshot")}",
+      s"-Dexamples.web=${((`sbt-scalajs-esbuild-web` / baseDirectory).value / "examples").absolutePath}"
+    ),
+    libraryDependencies ++= Seq(
+      "org.scalatest" %% "scalatest" % "3.2.20" % Test,
+      "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.20" % Test,
+      "org.scalatestplus" %% "selenium-4-9" % "3.2.16.0" % Test,
+      "org.seleniumhq.selenium" % "selenium-java" % "4.46.0" % Test
+    ),
+    e2ePublishPluginsLocal := {
+      (`sbt-scalajs-esbuild` / publishLocal).value
+      (`sbt-scalajs-esbuild-web` / publishLocal).value
+    },
+    Test / test := (Test / test).dependsOn(e2ePublishPluginsLocal).value,
+    Test / testOnly :=
+      (Test / testOnly).dependsOn(e2ePublishPluginsLocal).evaluated
+  )
+
 lazy val `scala-steward-hooks` = project
   .in(file("scala-steward-hooks"))
   .enablePlugins(ScalaJSPlugin)
