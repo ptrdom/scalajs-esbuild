@@ -102,4 +102,4 @@ jobs:
           E2E_TEST_BROWSER: ${{ matrix.browser }}
           E2E_CHANNEL: ${{ matrix.test-suffix }}
         run: |
-          & "$env:GITHUB_WORKSPACE/.github/scripts/Invoke-SbtWithRetry.ps1" -Command "e2e-web/test e2e-electron/test" -Label e2e
+          & "$env:GITHUB_WORKSPACE/.github/scripts/Invoke-SbtWithRetry.ps1" -Command "e2e-web/test","e2e-electron/test" -Label e2e
