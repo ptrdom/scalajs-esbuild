@@ -43,7 +43,7 @@
     },
     {
       "customType": "regex",
-      "managerFilePatterns": ["/sbt-test/.+/html\\.sbt$/"],
+      "managerFilePatterns": ["/sbt-test/.+/html\\.sbt$/", "/^e2e/.+/E2ESupport\\.scala$/"],
       "matchStrings": ["val\\s+chromeForTestingVersion\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
       "depNameTemplate": "chrome-for-testing",
       "datasourceTemplate": "custom.chrome-for-testing-stable",
@@ -51,7 +51,7 @@
     },
     {
       "customType": "regex",
-      "managerFilePatterns": ["/sbt-test/.+/html\\.sbt$/"],
+      "managerFilePatterns": ["/sbt-test/.+/html\\.sbt$/", "/^e2e/.+/E2ESupport\\.scala$/"],
       "matchStrings": ["val\\s+firefoxVersion\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
       "depNameTemplate": "firefox",
       "datasourceTemplate": "custom.firefox-releases"
