@@ -26,7 +26,7 @@ object E2ESupport {
   // Pinned so Selenium Manager fetches a deterministic browser+driver pair both
   // locally and in CI, instead of resolving against whatever is on PATH.
   private val chromeForTestingVersion = "151.0.7922.47"
-  private val firefoxVersion = "152.0"
+  private val firefoxVersion = "153.0"
 
   private def prop(name: String): String =
     sys.props.getOrElse(name, sys.error(s"System property [$name] not set"))
