@@ -23,7 +23,7 @@ for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
   }
   if ($attempt -lt $MaxAttempts -and $retryReason) {
     Write-Host "::warning::$retryReason. Retrying $Label (attempt $($attempt + 1)/$MaxAttempts)."
-    Get-Process -Name java,sbt,sbtn,node,esbuild -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Get-Process -Name java,sbt,sbtn,node,esbuild,electron -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 10
     continue
   }

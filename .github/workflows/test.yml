@@ -35,7 +35,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}
     env:
-      SBT_CHECK_TASKS: scalafmtSbtCheck scalafmtCheckAll e2e/scalafmtCheckAll test
+      SBT_CHECK_TASKS: scalafmtSbtCheck scalafmtCheckAll e2e-testkit/scalafmtCheckAll e2e-web/scalafmtCheckAll e2e-electron/scalafmtCheckAll test
       SBT_SCRIPTED_TARGETS: ${{ matrix.jdk == 8 && format('sbt-scalajs-esbuild/*-{0} sbt-scalajs-esbuild-electron/basic-project-{0} sbt-scalajs-esbuild-electron/e2e-test-playwright-node-{0} sbt-scalajs-esbuild-electron/electron-builder-{0} sbt-scalajs-esbuild-electron/electron-forge-{0}', matrix.test-suffix) || format('*/*-{0}', matrix.test-suffix) }}
     steps:
       - uses: actions/checkout@v7
@@ -83,9 +83,10 @@ jobs:
           & sbt ${{ env.SBT_CHECK_TASKS }}
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & "$env:GITHUB_WORKSPACE/.github/scripts/Invoke-SbtWithRetry.ps1" -Command "scriptedSequentialPerModule $env:SBT_SCRIPTED_TARGETS" -Label scripted
-      # Browser-driven hot-reload e2e tests (see `e2e` module). They spawn a
-      # child `sbt ~esbuildServe`, so they need JDK 9+ (process-tree teardown)
-      # and run per channel keyed off test-suffix, mirroring scripted.
+      # Browser-driven hot-reload e2e tests (see the `e2e/*` modules). They spawn
+      # a child `sbt ~esbuildServe`, so they need JDK 9+ (process-tree teardown)
+      # and run per channel keyed off test-suffix, mirroring scripted. Run as
+      # explicit per-module commands (not an aggregate) so they stay sequential.
       - name: Run e2e tests (Linux/macOS)
         if: ${{ matrix.jdk != 8 && !startsWith(matrix.os, 'windows-') }}
         uses: coactions/setup-xvfb@v1
@@ -93,7 +94,7 @@ jobs:
           E2E_TEST_BROWSER: ${{ matrix.browser }}
           E2E_CHANNEL: ${{ matrix.test-suffix }}
         with:
-          run: sbt e2e/test
+          run: sbt e2e-web/test e2e-electron/test
       - name: Run e2e tests (Windows, retry on sbt boot race)
         if: ${{ matrix.jdk != 8 && startsWith(matrix.os, 'windows-') }}
         shell: pwsh
@@ -101,4 +102,4 @@ jobs:
           E2E_TEST_BROWSER: ${{ matrix.browser }}
           E2E_CHANNEL: ${{ matrix.test-suffix }}
         run: |
-          & "$env:GITHUB_WORKSPACE/.github/scripts/Invoke-SbtWithRetry.ps1" -Command "e2e/test" -Label e2e
+          & "$env:GITHUB_WORKSPACE/.github/scripts/Invoke-SbtWithRetry.ps1" -Command "e2e-web/test e2e-electron/test" -Label e2e
