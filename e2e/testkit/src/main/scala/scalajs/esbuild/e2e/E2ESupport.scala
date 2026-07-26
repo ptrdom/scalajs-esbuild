@@ -12,34 +12,37 @@ import java.util.Comparator
 import java.util.concurrent.TimeUnit
 import java.util.regex.Matcher
 
+import scala.jdk.CollectionConverters._
+
 import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.WebDriver
-import org.openqa.selenium.chrome.ChromeDriver
-import org.openqa.selenium.chrome.ChromeOptions
-import org.openqa.selenium.firefox.FirefoxDriver
-import org.openqa.selenium.firefox.FirefoxOptions
 
-// Shared machinery for hot-reload e2e specs: copy an example to a throwaway
-// dir, run the real `sbt ~esbuildServe` against it, and drive a browser.
+// Plugin-agnostic machinery shared by the per-module hot-reload e2e specs: copy
+// an example to a throwaway dir, run the real `sbt ~esbuildServe` against it,
+// drive a browser, and edit sources. Web- and electron-specific helpers (driver
+// creation, example set, watch readiness, remote-debug wiring) live in
+// `WebSupport` / `ElectronSupport` in their respective modules.
 object E2ESupport {
 
-  // Pinned so Selenium Manager fetches a deterministic browser+driver pair both
-  // locally and in CI, instead of resolving against whatever is on PATH.
-  private val chromeForTestingVersion = "151.0.7922.47"
-  private val firefoxVersion = "153.0"
-
-  private def prop(name: String): String =
+  /** A required `-D` system property (set via the module's
+    * `Test / javaOptions`).
+    */
+  def prop(name: String): String =
     sys.props.getOrElse(name, sys.error(s"System property [$name] not set"))
 
-  private def isWindows =
+  def isWindows: Boolean =
     sys.props.getOrElse("os.name", "").toLowerCase.contains("win")
 
-  /** Copies example `name` into a fresh temp dir (excluding `target` and
-    * `node_modules`) and, on the `snapshot` channel, repoints the copy at the
-    * locally-published plugin version. The original example is never touched.
+  def isMac: Boolean =
+    sys.props.getOrElse("os.name", "").toLowerCase.contains("mac")
+
+  /** Copies example `name` from `examplesRoot` into a fresh temp dir (excluding
+    * `target` and `node_modules`) and, on the `snapshot` channel, repoints the
+    * copy at the locally-published plugin version. The original is never
+    * touched.
     */
-  def copyExample(name: String): Path = {
-    val source = Paths.get(prop("examples.web"), name)
+  def copyExample(examplesRoot: String, name: String): Path = {
+    val source = Paths.get(examplesRoot, name)
     if (!Files.isDirectory(source))
       sys.error(s"Example [$name] not found at [$source]")
     val target = Files.createTempDirectory(s"e2e-$name-")
@@ -117,45 +120,60 @@ object E2ESupport {
     }
   }
 
-  /** Spawns `sbt ~esbuildServe` and blocks until the dev server accepts
-    * connections on `port`.
+  /** Spawns `sbt ~esbuildServe` (with `extraEnv` added to its environment) and
+    * blocks until `ready` holds or the process dies / the timeout elapses. Each
+    * module supplies its own readiness check.
     */
-  def startWatch(directory: Path, port: Int): Process = {
+  def spawnWatch(
+      directory: Path,
+      extraEnv: Map[String, String],
+      ready: () => Boolean,
+      timeoutMillis: Long,
+      describe: String
+  ): Process = {
     val launcher = if (isWindows) List("cmd", "/c", "sbt") else List("sbt")
     val command = new java.util.ArrayList[String]()
     (launcher :+ "~esbuildServe").foreach(command.add)
     val builder = new ProcessBuilder(command)
     builder.directory(directory.toFile)
+    extraEnv.foreach { case (key, value) =>
+      builder.environment().put(key, value)
+    }
     // stdin stays an open, idle pipe: an EOF makes `~` quit immediately.
     builder.redirectInput(ProcessBuilder.Redirect.PIPE)
     builder.redirectOutput(ProcessBuilder.Redirect.INHERIT)
     builder.redirectError(ProcessBuilder.Redirect.INHERIT)
     val process = builder.start()
 
-    val deadline = System.currentTimeMillis() + 240000
-    var connected = false
-    while (!connected && System.currentTimeMillis() < deadline) {
+    val deadline = System.currentTimeMillis() + timeoutMillis
+    var up = false
+    while (!up && System.currentTimeMillis() < deadline) {
       if (!process.isAlive) {
         sys.error(
           s"`sbt ~esbuildServe` exited early with code [${process.exitValue()}]"
         )
       }
-      val socket = new Socket()
-      try {
-        socket.connect(new InetSocketAddress("localhost", port), 1000)
-        connected = true
-      } catch {
-        case _: Throwable => Thread.sleep(1000)
-      } finally {
-        try socket.close()
-        catch { case _: Throwable => () }
-      }
+      if (ready()) up = true else Thread.sleep(1000)
     }
-    if (!connected) {
+    if (!up) {
       stopWatch(process)
-      sys.error(s"Dev server did not start on port [$port] within timeout")
+      sys.error(s"$describe did not become ready within timeout")
     }
     process
+  }
+
+  /** True once a TCP connection to `port` on localhost succeeds. */
+  def tcpReachable(port: Int): Boolean = {
+    val socket = new Socket()
+    try {
+      socket.connect(new InetSocketAddress("localhost", port), 1000)
+      true
+    } catch {
+      case _: Throwable => false
+    } finally {
+      try socket.close()
+      catch { case _: Throwable => () }
+    }
   }
 
   def stopWatch(process: Process): Unit = {
@@ -165,36 +183,6 @@ object E2ESupport {
     descendants.forEach(handle => if (handle.isAlive) handle.destroy())
     if (!process.waitFor(10, TimeUnit.SECONDS)) process.destroyForcibly()
     descendants.forEach(handle => if (handle.isAlive) handle.destroyForcibly())
-  }
-
-  def newDriver(): WebDriver = {
-    // arguments recommended by https://itnext.io/how-to-run-a-headless-chrome-browser-in-selenium-webdriver-c5521bc12bf0
-    val arguments = Seq(
-      "--disable-gpu",
-      "--window-size=1920,1200",
-      "--ignore-certificate-errors",
-      "--disable-extensions",
-      "--no-sandbox",
-      "--disable-dev-shm-usage",
-      "--headless"
-    )
-    sys.env
-      .get("E2E_TEST_BROWSER")
-      .map(_.toLowerCase)
-      .getOrElse("chrome") match {
-      case "chrome" =>
-        val options = new ChromeOptions
-        options.setBrowserVersion(chromeForTestingVersion)
-        options.addArguments(arguments: _*)
-        new ChromeDriver(options)
-      case "firefox" =>
-        val options = new FirefoxOptions
-        options.setBrowserVersion(firefoxVersion)
-        options.addArguments(arguments: _*)
-        new FirefoxDriver(options)
-      case unhandled =>
-        sys.error(s"Unhandled browser [$unhandled]")
-    }
   }
 
   def js(driver: WebDriver): JavascriptExecutor =
@@ -214,6 +202,31 @@ object E2ESupport {
       property
     )
     Option(value).map(_.toString.replaceAll("\\s", "")).orNull
+  }
+
+  /** Text content of every element matching `selector`. */
+  def texts(driver: WebDriver, selector: String): Seq[String] =
+    js(driver)
+      .executeScript(
+        "return Array.from(document.querySelectorAll(arguments[0])).map(e => e.textContent)",
+        selector
+      )
+      .asInstanceOf[java.util.List[String]]
+      .asScala
+      .toList
+
+  /** `content` of a pseudo-element (e.g. `::after`), quotes included. */
+  def pseudoContent(
+      driver: WebDriver,
+      selector: String,
+      pseudo: String
+  ): String = {
+    val value = js(driver).executeScript(
+      "return getComputedStyle(document.querySelector(arguments[0]), arguments[1]).content",
+      selector,
+      pseudo
+    )
+    Option(value).map(_.toString).orNull
   }
 
   /** Targeted edit of a copied source file; fails if `from` is not present. */

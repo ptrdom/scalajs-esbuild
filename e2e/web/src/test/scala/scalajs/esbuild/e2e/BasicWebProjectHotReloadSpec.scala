@@ -23,12 +23,12 @@ class BasicWebProjectHotReloadSpec
     PatienceConfig(timeout = Span(120, Seconds), interval = Span(1, Seconds))
 
   "basic-web-project hot-reload under a real `sbt ~esbuildServe`" in {
-    val projectDir = E2ESupport.copyExample("basic-web-project")
+    val projectDir = WebSupport.copyExample("basic-web-project")
     val port = E2ESupport.freePort()
     E2ESupport.writeServerPort(projectDir, port)
-    val watch = E2ESupport.startWatch(projectDir, port)
+    val watch = WebSupport.startWatch(projectDir, port)
     try {
-      val driver = E2ESupport.newDriver()
+      val driver = WebSupport.newDriver()
       try {
         val stylesCss = projectDir.resolve("esbuild/styles.css")
         val mainScala = projectDir.resolve("src/main/scala/example/Main.scala")
