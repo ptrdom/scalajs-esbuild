@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "devDependencies": {
     "esbuild": "0.28.1",
-    "jsdom": "30.0.0",
+    "jsdom": "30.0.1",
     "lodash": "4.18.1"
   }
 }
