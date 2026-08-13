@@ -137,7 +137,7 @@ lazy val `e2e-testkit` = project
     publish / skip := true,
     scalaVersion := "2.13.18",
     libraryDependencies +=
-      "org.seleniumhq.selenium" % "selenium-java" % "4.46.0"
+      "org.seleniumhq.selenium" % "selenium-java" % "4.47.0"
   )
 
 lazy val `e2e-web` = project
@@ -190,7 +190,7 @@ lazy val `scala-steward-hooks` = project
       "org.scalatest" %% "scalatest" % "3.2.20" % "test",
       "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.20",
       "org.scalatestplus" %% "selenium-4-12" % "3.2.17.0",
-      "org.seleniumhq.selenium" % "selenium-java" % "4.46.0",
+      "org.seleniumhq.selenium" % "selenium-java" % "4.47.0",
       "org.apache.pekko" %% "pekko-actor-typed" % "1.6.0",
       "org.apache.pekko" %% "pekko-stream" % "1.6.0",
       "org.apache.pekko" %% "pekko-http" % "1.4.0",

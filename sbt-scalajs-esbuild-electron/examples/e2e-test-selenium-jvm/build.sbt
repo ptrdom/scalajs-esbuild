@@ -52,6 +52,6 @@ lazy val `e2e-test` =
       libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.20" % "test",
       libraryDependencies ++= Seq(
         "org.scalatestplus" %% "selenium-4-12" % "3.2.17.0" % "test",
-        "org.seleniumhq.selenium" % "selenium-java" % "4.46.0" % "test"
+        "org.seleniumhq.selenium" % "selenium-java" % "4.47.0" % "test"
       ) // should be upgraded when Electron upgrades its chromium version
     )
