@@ -12,6 +12,6 @@
     "electron-chromedriver": "44.1.1",
     "parse5": "8.0.1",
     "electron": "44.1.1",
-    "playwright": "1.62.1"
+    "playwright": "1.63.0"
   }
 }
