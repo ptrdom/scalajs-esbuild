@@ -119,7 +119,7 @@ val e2ePublishPluginsLocal =
 // explicit `<module>/test` on browser-enabled CI rows.
 lazy val e2eSettings = Seq(
   publish / skip := true,
-  scalaVersion := "2.13.18",
+  scalaVersion := "3.9.0",
   Test / fork := true,
   Test / parallelExecution := false,
   libraryDependencies ++= Seq(
@@ -135,7 +135,7 @@ lazy val `e2e-testkit` = project
   .in(file("e2e/testkit"))
   .settings(
     publish / skip := true,
-    scalaVersion := "2.13.18",
+    scalaVersion := "3.9.0",
     libraryDependencies +=
       "org.seleniumhq.selenium" % "selenium-java" % "4.48.0"
   )
@@ -184,7 +184,7 @@ lazy val `scala-steward-hooks` = project
   .enablePlugins(ScalaJSPlugin)
   .settings(
     publish / skip := true,
-    scalaVersion := "2.13.18",
+    scalaVersion := "3.9.0",
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "2.8.1",
       "org.scalatest" %% "scalatest" % "3.2.20" % "test",

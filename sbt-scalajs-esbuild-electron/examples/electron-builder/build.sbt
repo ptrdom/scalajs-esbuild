@@ -5,7 +5,7 @@ import scala.sys.process._
 
 enablePlugins(ScalaJSEsbuildElectronPlugin)
 
-ThisBuild / scalaVersion := "2.13.18"
+ThisBuild / scalaVersion := "3.9.0"
 
 scalaJSModuleInitializers := Seq(
   ModuleInitializer
