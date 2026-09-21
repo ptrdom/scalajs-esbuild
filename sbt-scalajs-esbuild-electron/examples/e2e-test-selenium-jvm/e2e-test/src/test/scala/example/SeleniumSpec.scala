@@ -1,6 +1,7 @@
 package example
 
 import java.io.File
+import java.net.ServerSocket
 import java.nio.file.Files
 import java.nio.file.Paths
 
@@ -45,7 +46,13 @@ class SeleniumSpec extends AnyFreeSpec with Matchers with WebBrowser {
     }
     resolve(List(scalaTestRunnerPath, sbtRunnerPath))
   }
-  val debugPort = 9222
+  // Pick a free port rather than the conventional 9222, which may already be
+  // taken on the host (e.g. on GitHub's macOS runners).
+  val debugPort = {
+    val socket = new ServerSocket(0)
+    try socket.getLocalPort
+    finally socket.close()
+  }
 
   System.setProperty(
     "webdriver.chrome.driver",

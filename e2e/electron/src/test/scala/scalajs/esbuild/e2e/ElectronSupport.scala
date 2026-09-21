@@ -5,6 +5,7 @@ import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.regex.Matcher
 
 import org.openqa.selenium.WebDriver
@@ -28,27 +29,47 @@ object ElectronSupport {
     target
   }
 
-  /** Adds `electron-chromedriver`, pinned to the example's Electron version, to
-    * the copy's esbuild package. Its postinstall provides a `chromedriver` that
-    * matches Electron's bundled Chromium (Selenium Manager can't supply that).
+  /** Adds `electron-chromedriver` to the copy's esbuild package. Its
+    * postinstall provides a `chromedriver` that matches Electron's bundled
+    * Chromium (Selenium Manager can't supply that).
     */
   private def addChromedriver(projectDir: Path): Unit = {
     val packageJson = projectDir.resolve("esbuild/package.json")
     val original =
       new String(Files.readAllBytes(packageJson), StandardCharsets.UTF_8)
-    val electronVersion = """"electron"\s*:\s*"([^"]+)"""".r
-      .findFirstMatchIn(original)
-      .map(_.group(1))
-      .getOrElse(sys.error(s"No electron dependency found in [$packageJson]"))
     val rewritten = original.replaceFirst(
       """("devDependencies"\s*:\s*\{)""",
       "$1" + Matcher.quoteReplacement(
-        s"""\n    "electron-chromedriver": "$electronVersion","""
+        s"""\n    "electron-chromedriver": "$chromedriverVersion","""
       )
     )
     if (rewritten == original)
       sys.error(s"Could not add electron-chromedriver to [$packageJson]")
     Files.write(packageJson, rewritten.getBytes(StandardCharsets.UTF_8))
+  }
+
+  /** The `electron-chromedriver` version pinned by the `e2e-test-selenium-jvm`
+    * example. Not derived from the example's Electron version: chromedriver
+    * releases lag Electron's and sometimes skip patch versions, so an exact
+    * match may not exist yet. Renovate keeps this pin on a published version
+    * alongside Electron (the two are grouped), and chromedriver only needs to
+    * match Electron's Chromium major.
+    */
+  private lazy val chromedriverVersion: String = {
+    val packageJson = Paths.get(
+      E2ESupport.prop("examples.electron"),
+      "e2e-test-selenium-jvm/app/esbuild/package.json"
+    )
+    val content =
+      new String(Files.readAllBytes(packageJson), StandardCharsets.UTF_8)
+    """"electron-chromedriver"\s*:\s*"([^"]+)"""".r
+      .findFirstMatchIn(content)
+      .map(_.group(1))
+      .getOrElse(
+        sys.error(
+          s"No electron-chromedriver dependency found in [$packageJson]"
+        )
+      )
   }
 
   /** Makes the Electron the plugin spawns expose a remote-debugging port for
