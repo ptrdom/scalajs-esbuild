@@ -193,7 +193,7 @@ lazy val `scala-steward-hooks` = project
       "org.seleniumhq.selenium" % "selenium-java" % "4.50.0",
       "org.apache.pekko" %% "pekko-actor-typed" % "1.7.1",
       "org.apache.pekko" %% "pekko-stream" % "1.7.1",
-      "org.apache.pekko" %% "pekko-http" % "1.4.0",
+      "org.apache.pekko" %% "pekko-http" % "1.4.1",
       "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.1"
     )
   )
