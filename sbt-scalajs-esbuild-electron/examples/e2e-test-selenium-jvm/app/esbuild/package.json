@@ -8,7 +8,7 @@
   },
   "devDependencies": {
     "esbuild": "0.28.2",
-    "electron-builder": "26.15.3",
+    "electron-builder": "26.18.0",
     "electron-chromedriver": "45.0.0",
     "parse5": "8.0.1",
     "electron": "45.0.0",
