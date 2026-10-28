@@ -31,20 +31,30 @@ object ElectronSupport {
 
   /** Adds `electron-chromedriver` to the copy's esbuild package. Its
     * postinstall provides a `chromedriver` that matches Electron's bundled
-    * Chromium (Selenium Manager can't supply that).
+    * Chromium (Selenium Manager can't supply that). npm 12+ blocks dependency
+    * install scripts unless covered by `allowScripts`, so that is added too.
     */
   private def addChromedriver(projectDir: Path): Unit = {
     val packageJson = projectDir.resolve("esbuild/package.json")
     val original =
       new String(Files.readAllBytes(packageJson), StandardCharsets.UTF_8)
-    val rewritten = original.replaceFirst(
+    def insertAfter(content: String, regex: String, insertion: String) = {
+      val rewritten =
+        content.replaceFirst(regex, "$1" + Matcher.quoteReplacement(insertion))
+      if (rewritten == content)
+        sys.error(s"Could not add electron-chromedriver to [$packageJson]")
+      rewritten
+    }
+    val withDependency = insertAfter(
+      original,
       """("devDependencies"\s*:\s*\{)""",
-      "$1" + Matcher.quoteReplacement(
-        s"""\n    "electron-chromedriver": "$chromedriverVersion","""
-      )
+      s"""\n    "electron-chromedriver": "$chromedriverVersion","""
     )
-    if (rewritten == original)
-      sys.error(s"Could not add electron-chromedriver to [$packageJson]")
+    val rewritten = insertAfter(
+      withDependency,
+      """^(\s*\{)""",
+      s"""\n  "allowScripts": { "electron-chromedriver": true },"""
+    )
     Files.write(packageJson, rewritten.getBytes(StandardCharsets.UTF_8))
   }
 
