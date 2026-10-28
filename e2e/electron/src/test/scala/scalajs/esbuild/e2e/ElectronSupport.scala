@@ -32,8 +32,7 @@ object ElectronSupport {
   /** Adds `electron-chromedriver` to the copy's esbuild package. Its
     * postinstall provides a `chromedriver` that matches Electron's bundled
     * Chromium (Selenium Manager can't supply that). The example's `yauzl`
-    * override is copied too, so that postinstall extracts the whole zip on
-    * Node 26.
+    * override is copied too, so that postinstall extracts the whole zip on Node 26.
     */
   private def addChromedriver(projectDir: Path): Unit = {
     val packageJson = projectDir.resolve("esbuild/package.json")
