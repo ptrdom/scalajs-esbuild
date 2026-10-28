@@ -51,8 +51,13 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 26.12.1
+      # Node 25+ no longer bundles Corepack, so install it into setup-node's
+      # Node; otherwise `corepack enable` silently uses some other Corepack on
+      # the runner, whose shims lose to the Windows image's global Yarn 1.
       - name: Enable Corepack
-        run: corepack enable
+        run: |
+          npm install -g corepack@0.36.0
+          corepack enable
       - name: Prime corepack package managers (Windows)
         if: startsWith(matrix.os, 'windows-')
         shell: bash

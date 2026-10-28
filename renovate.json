@@ -29,7 +29,8 @@
       ],
       "matchStrings": [
         "corepack prepare (?<depName>pnpm)@(?<currentValue>\\S+)",
-        "corepack prepare (?<depName>yarn)@(?<currentValue>1\\.\\S+)"
+        "corepack prepare (?<depName>yarn)@(?<currentValue>1\\.\\S+)",
+        "npm install -g (?<depName>corepack)@(?<currentValue>\\S+)"
       ],
       "datasourceTemplate": "npm"
     },
