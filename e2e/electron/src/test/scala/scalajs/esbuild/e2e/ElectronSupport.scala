@@ -31,8 +31,9 @@ object ElectronSupport {
 
   /** Adds `electron-chromedriver` to the copy's esbuild package. Its
     * postinstall provides a `chromedriver` that matches Electron's bundled
-    * Chromium (Selenium Manager can't supply that). npm 12+ blocks dependency
-    * install scripts unless covered by `allowScripts`, so that is added too.
+    * Chromium (Selenium Manager can't supply that). The example's `yauzl`
+    * override is copied too, so that postinstall extracts the whole zip on
+    * Node 26.
     */
   private def addChromedriver(projectDir: Path): Unit = {
     val packageJson = projectDir.resolve("esbuild/package.json")
@@ -53,9 +54,28 @@ object ElectronSupport {
     val rewritten = insertAfter(
       withDependency,
       """^(\s*\{)""",
-      s"""\n  "allowScripts": { "electron-chromedriver": true },"""
+      s"""\n  "overrides": { "yauzl": "$yauzlVersion" },"""
     )
     Files.write(packageJson, rewritten.getBytes(StandardCharsets.UTF_8))
+  }
+
+  private lazy val seleniumExamplePackageJson: (Path, String) = {
+    val packageJson = Paths.get(
+      E2ESupport.prop("examples.electron"),
+      "e2e-test-selenium-jvm/app/esbuild/package.json"
+    )
+    (
+      packageJson,
+      new String(Files.readAllBytes(packageJson), StandardCharsets.UTF_8)
+    )
+  }
+
+  private def seleniumExampleVersion(name: String): String = {
+    val (packageJson, content) = seleniumExamplePackageJson
+    ("\"" + java.util.regex.Pattern.quote(name) + """"\s*:\s*"([^"]+)"""").r
+      .findFirstMatchIn(content)
+      .map(_.group(1))
+      .getOrElse(sys.error(s"No $name version found in [$packageJson]"))
   }
 
   /** The `electron-chromedriver` version pinned by the `e2e-test-selenium-jvm`
@@ -65,22 +85,11 @@ object ElectronSupport {
     * alongside Electron (the two are grouped), and chromedriver only needs to
     * match Electron's Chromium major.
     */
-  private lazy val chromedriverVersion: String = {
-    val packageJson = Paths.get(
-      E2ESupport.prop("examples.electron"),
-      "e2e-test-selenium-jvm/app/esbuild/package.json"
-    )
-    val content =
-      new String(Files.readAllBytes(packageJson), StandardCharsets.UTF_8)
-    """"electron-chromedriver"\s*:\s*"([^"]+)"""".r
-      .findFirstMatchIn(content)
-      .map(_.group(1))
-      .getOrElse(
-        sys.error(
-          s"No electron-chromedriver dependency found in [$packageJson]"
-        )
-      )
-  }
+  private lazy val chromedriverVersion: String =
+    seleniumExampleVersion("electron-chromedriver")
+
+  /** The `yauzl` override from the `e2e-test-selenium-jvm` example. */
+  private lazy val yauzlVersion: String = seleniumExampleVersion("yauzl")
 
   /** Makes the Electron the plugin spawns expose a remote-debugging port for
     * Selenium to attach to, by transforming the copied project's generated
