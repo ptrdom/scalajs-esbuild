@@ -26,26 +26,14 @@ class BasicElectronProjectHotReloadSpec
     PatienceConfig(timeout = Span(180, Seconds), interval = Span(1, Seconds))
 
   "basic-project hot-reload under a real `sbt ~esbuildServe`" in {
-    // The main-process round respawns Electron, which must rebind the fixed
-    // remote-debugging port. macOS keeps the just-killed process's port in
-    // TIME_WAIT, so the new Electron fails to start its devtools server and CDP
-    // never returns - unfixable from here. macOS is an experimental CI row, so
-    // skip there rather than fail; Linux and Windows rebind fine, as the plugin
-    // only spawns the new Electron once the old one has exited.
-    assume(
-      !E2ESupport.isMac,
-      "electron respawn can't rebind the remote-debug port on macOS (TIME_WAIT)"
-    )
-
     val projectDir = ElectronSupport.copyExample("basic-project")
     val serverPort = E2ESupport.freePort()
     E2ESupport.writeServerPort(projectDir, serverPort)
-    val debugPort = E2ESupport.freePort()
-    ElectronSupport.writeRemoteDebug(projectDir, debugPort)
-    val watch = ElectronSupport.startWatch(projectDir, debugPort)
+    ElectronSupport.writeRemoteDebug(projectDir)
+    val watch = ElectronSupport.startWatch(projectDir)
     try {
       val chromedriver = ElectronSupport.chromedriver(projectDir)
-      var driver = ElectronSupport.newDriver(chromedriver, debugPort)
+      var driver = ElectronSupport.newDriver(chromedriver, projectDir)
       try {
         val renderer =
           projectDir.resolve("src/main/scala/example/Renderer.scala")
@@ -117,23 +105,23 @@ class BasicElectronProjectHotReloadSpec
 
             // Main edit: the main-process rebuild respawns Electron. Detect the
             // new process by a changed CDP browser id, then re-attach.
-            val before = ElectronSupport.cdpBrowserId(debugPort)
+            val before = ElectronSupport.cdpBrowserId(projectDir)
             before shouldBe defined
             E2ESupport.edit(main, s"width = $fromWidth", s"width = $toWidth")
             withClue(clue) {
               eventually {
                 ElectronSupport
-                  .cdpBrowserId(debugPort) should (be(
+                  .cdpBrowserId(projectDir) should (be(
                   defined
                 ) and not be before)
               }
               eventually {
-                ElectronSupport.cdpPageReady(debugPort) shouldBe true
+                ElectronSupport.cdpPageReady(projectDir) shouldBe true
               }
             }
             try driver.quit()
             catch { case _: Throwable => () }
-            driver = ElectronSupport.newDriver(chromedriver, debugPort)
+            driver = ElectronSupport.newDriver(chromedriver, projectDir)
             // The re-attached window shows the app rebuilt from the round's
             // edited sources.
             withClue(clue) {

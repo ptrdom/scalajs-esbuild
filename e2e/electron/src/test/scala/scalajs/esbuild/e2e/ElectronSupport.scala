@@ -15,7 +15,7 @@ import org.openqa.selenium.chrome.ChromeOptions
 
 // Electron-plugin-specific e2e helpers, layered on the plugin-agnostic
 // `E2ESupport`: the plugin spawns Electron, so attaching Selenium needs an
-// Electron-matched chromedriver, a remote-debugging port injected into the serve
+// Electron-matched chromedriver, remote debugging enabled through the serve
 // script, and CDP polling for readiness / respawn detection.
 object ElectronSupport {
 
@@ -90,6 +90,12 @@ object ElectronSupport {
   /** The `yauzl` override from the `e2e-test-selenium-jvm` example. */
   private lazy val yauzlVersion: String = seleniumExampleVersion("yauzl")
 
+  /** The user data directory [[writeRemoteDebug]] points a copied project's
+    * Electron at, where it reports its remote-debugging port.
+    */
+  def userDataDir(projectDir: Path): Path =
+    projectDir.resolve("e2e-electron-user-data")
+
   /** Makes the Electron the plugin spawns expose a remote-debugging port for
     * Selenium to attach to, by transforming the copied project's generated
     * `esbuildServeScript` to add the switches to its `spawn(electron, ...)`
@@ -97,13 +103,21 @@ object ElectronSupport {
     * fastLinkJS` scope matches how the electron plugin defines the script for
     * the default FastOpt stage; `esbuildServeScript` is in scope via the web
     * plugin's autoImport.
+    *
+    * Port 0 lets each spawned Electron pick a free port, reported in
+    * [[userDataDir]] (see [[debugPort]]). A fixed port would have to be rebound
+    * by the Electron respawned on a main-process change, which Windows and
+    * macOS intermittently refuse while the killed one's connections linger in
+    * TIME_WAIT.
     */
-  def writeRemoteDebug(projectDir: Path, debugPort: Int): Unit = {
+  def writeRemoteDebug(projectDir: Path): Unit = {
+    val dataDir = userDataDir(projectDir).toAbsolutePath.toString
+      .replace('\\', '/')
     val content =
       s"""Compile / fastLinkJS / esbuildServeScript := {
          |  (Compile / fastLinkJS / esbuildServeScript).value.replace(
          |    "'.'], { stdio: 'inherit' }",
-         |    "'.', '--remote-debugging-port=$debugPort', '--remote-allow-origins=*'], { stdio: 'inherit' }"
+         |    "'.', '--remote-debugging-port=0', '--remote-allow-origins=*', '--user-data-dir=$dataDir'], { stdio: 'inherit' }"
          |  )
          |}
          |""".stripMargin
@@ -113,17 +127,35 @@ object ElectronSupport {
     )
   }
 
+  /** The remote-debugging port of the Electron last started for a copied
+    * project, from the `DevToolsActivePort` file Chromium writes to its user
+    * data directory. Right after a respawn this may still name the old
+    * process's port, which then refuses connections.
+    */
+  def debugPort(projectDir: Path): Option[Int] =
+    try {
+      val content = new String(
+        Files.readAllBytes(
+          userDataDir(projectDir).resolve("DevToolsActivePort")
+        ),
+        StandardCharsets.UTF_8
+      )
+      content.linesIterator.toList.headOption.map(_.trim.toInt)
+    } catch {
+      case _: Exception => None
+    }
+
   /** Runs `~esbuildServe` for an electron project (which must have had
     * [[writeRemoteDebug]] applied), ready once Electron's CDP endpoint reports
     * a page target.
     */
-  def startWatch(directory: Path, debugPort: Int): Process =
+  def startWatch(directory: Path): Process =
     E2ESupport.spawnWatch(
       directory,
       Map.empty,
-      () => cdpPageReady(debugPort),
+      () => cdpPageReady(directory),
       300000,
-      s"Electron CDP endpoint on port [$debugPort]"
+      s"Electron CDP endpoint reported in [${userDataDir(directory)}]"
     )
 
   private def httpGet(url: String, timeoutMillis: Int): Option[String] = {
@@ -141,19 +173,22 @@ object ElectronSupport {
   }
 
   /** True once Electron's remote-debugging endpoint reports a `page` target. */
-  def cdpPageReady(debugPort: Int): Boolean =
-    httpGet(s"http://localhost:$debugPort/json", 2000)
+  def cdpPageReady(projectDir: Path): Boolean =
+    debugPort(projectDir)
+      .flatMap(port => httpGet(s"http://localhost:$port/json", 2000))
       .exists(_.replaceAll("\\s", "").contains("\"type\":\"page\""))
 
   /** The CDP endpoint's per-process browser id; changes when Electron respawns,
     * so a differing value confirms a main-process restart.
     */
-  def cdpBrowserId(debugPort: Int): Option[String] =
-    httpGet(s"http://localhost:$debugPort/json/version", 2000).flatMap { body =>
-      """"webSocketDebuggerUrl"\s*:\s*"[^"]*/devtools/browser/([^"]+)"""".r
-        .findFirstMatchIn(body)
-        .map(_.group(1))
-    }
+  def cdpBrowserId(projectDir: Path): Option[String] =
+    debugPort(projectDir)
+      .flatMap(port => httpGet(s"http://localhost:$port/json/version", 2000))
+      .flatMap { body =>
+        """"webSocketDebuggerUrl"\s*:\s*"[^"]*/devtools/browser/([^"]+)"""".r
+          .findFirstMatchIn(body)
+          .map(_.group(1))
+      }
 
   /** The `electron-chromedriver` binary produced by the plugin's esbuild
     * install for a copied project.
@@ -165,20 +200,25 @@ object ElectronSupport {
     )
   }
 
-  /** Attaches a ChromeDriver to an already-running Electron via its remote
-    * debugging port, using the Electron-matched chromedriver (not Selenium
-    * Manager, whose Chrome would not match Electron's bundled Chromium). The
-    * driver binary is bound to this service rather than the global
-    * `webdriver.chrome.driver` property so it can't leak into the web spec's
-    * Selenium-Manager driver.
+  /** Attaches a ChromeDriver to a copied project's already-running Electron via
+    * its remote debugging port, using the Electron-matched chromedriver (not
+    * Selenium Manager, whose Chrome would not match Electron's bundled
+    * Chromium). The driver binary is bound to this service rather than the
+    * global `webdriver.chrome.driver` property so it can't leak into the web
+    * spec's Selenium-Manager driver.
     */
-  def newDriver(chromedriver: Path, debugPort: Int): WebDriver = {
+  def newDriver(chromedriver: Path, projectDir: Path): WebDriver = {
+    val port = debugPort(projectDir).getOrElse(
+      sys.error(
+        s"No Electron remote-debugging port in [${userDataDir(projectDir)}]"
+      )
+    )
     val service = new ChromeDriverService.Builder()
       .usingDriverExecutable(chromedriver.toFile)
       .build()
     val options = new ChromeOptions
     options.addArguments("--remote-allow-origins=*")
-    options.setExperimentalOption("debuggerAddress", s"localhost:$debugPort")
+    options.setExperimentalOption("debuggerAddress", s"localhost:$port")
     new ChromeDriver(service, options)
   }
 }
