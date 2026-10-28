@@ -30,7 +30,8 @@ class BasicElectronProjectHotReloadSpec
     // remote-debugging port. macOS keeps the just-killed process's port in
     // TIME_WAIT, so the new Electron fails to start its devtools server and CDP
     // never returns - unfixable from here. macOS is an experimental CI row, so
-    // skip there rather than fail; Linux and Windows rebind fine.
+    // skip there rather than fail; Linux and Windows rebind fine, as the plugin
+    // only spawns the new Electron once the old one has exited.
     assume(
       !E2ESupport.isMac,
       "electron respawn can't rebind the remote-debug port on macOS (TIME_WAIT)"
