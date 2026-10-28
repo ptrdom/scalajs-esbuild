@@ -1,0 +1,7 @@
+{
+  "name": "cross-zip",
+  "version": "4.0.1",
+  "description": "cross-zip 4.0.1 patched for Node 26",
+  "license": "MIT",
+  "main": "index.js"
+}
