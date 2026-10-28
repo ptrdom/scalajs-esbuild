@@ -33,9 +33,6 @@ object E2ESupport {
   def isWindows: Boolean =
     sys.props.getOrElse("os.name", "").toLowerCase.contains("win")
 
-  def isMac: Boolean =
-    sys.props.getOrElse("os.name", "").toLowerCase.contains("mac")
-
   /** Copies example `name` from `examplesRoot` into a fresh temp dir (excluding
     * `target` and `node_modules`) and, on the `snapshot` channel, repoints the
     * copy at the locally-published plugin version. The original is never
