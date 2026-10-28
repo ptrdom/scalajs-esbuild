@@ -49,17 +49,30 @@ object Scripts {
        |      name: 'main-reload-plugin',
        |      setup(build) {
        |        let electronProcess = null;
-       |        build.onEnd(() => {
-       |          if (electronProcess != null) {
-       |            electronProcess.handle.removeListener('exit', electronProcess.closeListener);
-       |            electronProcess.handle.kill();
-       |            electronProcess = null;
-       |          }
+       |        let respawnPending = false;
+       |        const spawnElectron = () => {
        |          electronProcess = {
        |            handle: spawn(electron, [path.join(electronBuildOutputDirectory, mainEntryPoint), '.'], { stdio: 'inherit' }),
        |            closeListener: () => process.exit()
        |          };
        |          electronProcess.handle.on('exit', electronProcess.closeListener);
+       |        };
+       |        build.onEnd(() => {
+       |          if (electronProcess == null) {
+       |            spawnElectron();
+       |          } else if (!respawnPending) {
+       |            // Spawn the new process only once the old one has exited, so
+       |            // they don't race for what the old one still holds (ports,
+       |            // single-instance locks). Rebuilds landing meanwhile need no
+       |            // extra respawn - the new process loads the latest bundle.
+       |            respawnPending = true;
+       |            electronProcess.handle.removeListener('exit', electronProcess.closeListener);
+       |            electronProcess.handle.once('exit', () => {
+       |              respawnPending = false;
+       |              spawnElectron();
+       |            });
+       |            electronProcess.handle.kill();
+       |          }
        |        });
        |      },
        |    }];
