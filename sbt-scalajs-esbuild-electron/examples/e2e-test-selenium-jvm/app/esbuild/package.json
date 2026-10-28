@@ -13,5 +13,9 @@
     "parse5": "8.0.1",
     "electron": "45.1.0",
     "playwright": "1.64.1"
+  },
+  "comment": "extract-zip@2 (yauzl@2) silently truncates zip extraction on Node 26, so electron-chromedriver's postinstall leaves no chromedriver binary while exiting 0. yauzl@3.4 fixes it and extract-zip@2 accepts it. See https://github.com/electron/electron/issues/51619.",
+  "overrides": {
+    "yauzl": "3.4.0"
   }
 }
