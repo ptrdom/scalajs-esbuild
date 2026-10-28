@@ -68,7 +68,7 @@ jobs:
             echo "SONATYPE_PASSWORD=$SONATYPE_PASSWORD"
             echo "SONATYPE_USERNAME=$SONATYPE_USERNAME"
           } >> "$GITHUB_ENV"
-      - uses: coursier/cache-action@v8
+      - uses: coursier/cache-action@v9
       - uses: coursier/setup-action@v3
         with:
           jvm: temurin:11
