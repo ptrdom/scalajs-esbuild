@@ -15,7 +15,7 @@
   },
   "comment": "extract-zip@2 (yauzl@2) silently truncates zip extraction on Node >=24.16, so @electron/get produces an incomplete Electron download and packaging emits nothing while exiting 0. Redirect it to the drop-in @electron-internal/extract-zip until Electron Forge 8 ships the fix. See https://github.com/electron/forge/issues/4277. cross-zip (used by maker-zip, latest 4.0.1) calls fs.rmdir with the recursive option on Windows, which Node 26 removed, so redirect it to the patched copy in cross-zip-shim.",
   "overrides": {
-    "extract-zip": "npm:@electron-internal/extract-zip@1.0.7",
+    "extract-zip": "npm:@electron-internal/extract-zip@1.0.8",
     "cross-zip": "file:./cross-zip-shim"
   }
 }
