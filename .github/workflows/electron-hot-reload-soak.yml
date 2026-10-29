@@ -1,0 +1,58 @@
+# Throwaway soak test for #844: runs only the Electron hot-reload e2e spec on
+# Windows, many times, to check it for flakiness. Not meant for main.
+name: Electron hot-reload soak
+on:
+  push:
+    branches:
+      - ci/electron-hot-reload-soak
+  workflow_dispatch:
+jobs:
+  soak:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    runs-on: windows-2025
+    env:
+      ITERATIONS: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: coursier/cache-action@v9
+      - uses: coursier/setup-action@v3
+        with:
+          jvm: temurin:25
+          apps: sbt:1.13.1
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26.13.0
+      - name: Enable Corepack
+        shell: bash
+        run: |
+          npm uninstall -g yarn
+          npm install -g corepack@0.36.0
+          corepack enable
+      - name: Prime corepack package managers
+        shell: bash
+        run: |
+          corepack prepare pnpm@12.16.1
+          corepack prepare yarn@1.22.22
+          corepack prepare yarn@4.18.1
+      - name: Run the Electron hot-reload spec repeatedly
+        shell: pwsh
+        env:
+          E2E_CHANNEL: snapshot
+        run: |
+          $failed = 0
+          for ($i = 1; $i -le [int]$env:ITERATIONS; $i++) {
+            Write-Host "::group::Iteration $i/$env:ITERATIONS"
+            & "$env:GITHUB_WORKSPACE/.github/scripts/Invoke-SbtWithRetry.ps1" -Command "e2e-electron/testOnly scalajs.esbuild.e2e.BasicElectronProjectHotReloadSpec" -Label "soak-$i"
+            $exit = $LASTEXITCODE
+            Write-Host "::endgroup::"
+            if ($exit -ne 0) {
+              $failed++
+              Write-Host "::error::Iteration $i failed with exit code $exit"
+              Get-Process -Name java,sbt,sbtn,node,esbuild,electron,chromedriver -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            }
+          }
+          Write-Host "Shard ${{ matrix.shard }}: $failed of $env:ITERATIONS iterations failed"
+          if ($failed -gt 0) { exit 1 }
