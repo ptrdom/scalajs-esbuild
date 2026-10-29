@@ -33,7 +33,7 @@ class BasicElectronProjectHotReloadSpec
     val watch = ElectronSupport.startWatch(projectDir)
     try {
       val chromedriver = ElectronSupport.chromedriver(projectDir)
-      var driver = ElectronSupport.newDriver(chromedriver, projectDir)
+      var driver = ElectronSupport.newDriver(chromedriver, watch)
       try {
         val renderer =
           projectDir.resolve("src/main/scala/example/Renderer.scala")
@@ -105,23 +105,23 @@ class BasicElectronProjectHotReloadSpec
 
             // Main edit: the main-process rebuild respawns Electron. Detect the
             // new process by a changed CDP browser id, then re-attach.
-            val before = ElectronSupport.cdpBrowserId(projectDir)
+            val before = ElectronSupport.cdpBrowserId(watch)
             before shouldBe defined
             E2ESupport.edit(main, s"width = $fromWidth", s"width = $toWidth")
             withClue(clue) {
               eventually {
                 ElectronSupport
-                  .cdpBrowserId(projectDir) should (be(
+                  .cdpBrowserId(watch) should (be(
                   defined
                 ) and not be before)
               }
               eventually {
-                ElectronSupport.cdpPageReady(projectDir) shouldBe true
+                ElectronSupport.cdpPageReady(watch) shouldBe true
               }
             }
             try driver.quit()
             catch { case _: Throwable => () }
-            driver = ElectronSupport.newDriver(chromedriver, projectDir)
+            driver = ElectronSupport.newDriver(chromedriver, watch)
             // The re-attached window shows the app rebuilt from the round's
             // edited sources.
             withClue(clue) {
@@ -145,7 +145,7 @@ class BasicElectronProjectHotReloadSpec
         catch { case _: Throwable => () }
       }
     } finally {
-      E2ESupport.stopWatch(watch)
+      E2ESupport.stopWatch(watch.process)
       E2ESupport.deleteRecursively(projectDir)
     }
   }
