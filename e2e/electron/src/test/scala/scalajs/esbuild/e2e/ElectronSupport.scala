@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.concurrent.atomic.AtomicReference
 import java.util.regex.Matcher
 
 import org.openqa.selenium.WebDriver
@@ -90,12 +91,6 @@ object ElectronSupport {
   /** The `yauzl` override from the `e2e-test-selenium-jvm` example. */
   private lazy val yauzlVersion: String = seleniumExampleVersion("yauzl")
 
-  /** The user data directory [[writeRemoteDebug]] points a copied project's
-    * Electron at, where it reports its remote-debugging port.
-    */
-  def userDataDir(projectDir: Path): Path =
-    projectDir.resolve("e2e-electron-user-data")
-
   /** Makes the Electron the plugin spawns expose a remote-debugging port for
     * Selenium to attach to, by transforming the copied project's generated
     * `esbuildServeScript` to add the switches to its `spawn(electron, ...)`
@@ -104,20 +99,21 @@ object ElectronSupport {
     * the default FastOpt stage; `esbuildServeScript` is in scope via the web
     * plugin's autoImport.
     *
-    * Port 0 lets each spawned Electron pick a free port, reported in
-    * [[userDataDir]] (see [[debugPort]]). A fixed port would have to be rebound
-    * by the Electron respawned on a main-process change, which Windows and
-    * macOS intermittently refuse while the killed one's connections linger in
-    * TIME_WAIT.
+    * Port 0 lets each spawned Electron pick a free port, which [[startWatch]]
+    * picks up from its output. A fixed port would have to be rebound by the
+    * Electron respawned on a main-process change, which Windows and macOS
+    * intermittently refuse while the killed one's connections linger in
+    * TIME_WAIT. The port is not read from the `DevToolsActivePort` file
+    * Chromium writes to the user data directory: Windows intermittently refuses
+    * a respawned Electron the rewrite of that file ("being used by another
+    * process"), and Chromium never retries.
     */
   def writeRemoteDebug(projectDir: Path): Unit = {
-    val dataDir = userDataDir(projectDir).toAbsolutePath.toString
-      .replace('\\', '/')
     val content =
       s"""Compile / fastLinkJS / esbuildServeScript := {
          |  (Compile / fastLinkJS / esbuildServeScript).value.replace(
          |    "'.'], { stdio: 'inherit' }",
-         |    "'.', '--remote-debugging-port=0', '--remote-allow-origins=*', '--user-data-dir=$dataDir'], { stdio: 'inherit' }"
+         |    "'.', '--remote-debugging-port=0', '--remote-allow-origins=*'], { stdio: 'inherit' }"
          |  )
          |}
          |""".stripMargin
@@ -127,36 +123,41 @@ object ElectronSupport {
     )
   }
 
-  /** The remote-debugging port of the Electron last started for a copied
-    * project, from the `DevToolsActivePort` file Chromium writes to its user
-    * data directory. Right after a respawn this may still name the old
-    * process's port, which then refuses connections.
+  /** A running `~esbuildServe` for an electron project, tracking the
+    * remote-debugging port of the Electron it last spawned from the
+    * `DevTools listening on ws://host:port/...` line Chromium prints once
+    * bound. Right after a respawn this still names the old process's port,
+    * which then refuses connections.
     */
-  def debugPort(projectDir: Path): Option[Int] =
-    try {
-      val content = new String(
-        Files.readAllBytes(
-          userDataDir(projectDir).resolve("DevToolsActivePort")
-        ),
-        StandardCharsets.UTF_8
-      )
-      content.linesIterator.toList.headOption.map(_.trim.toInt)
-    } catch {
-      case _: Exception => None
-    }
+  final class Watch private[ElectronSupport] (
+      val process: Process,
+      port: AtomicReference[Option[Int]]
+  ) {
+    def debugPort: Option[Int] = port.get
+  }
+
+  private val devToolsListening =
+    """DevTools listening on ws://[^/\s]+:(\d+)/""".r.unanchored
 
   /** Runs `~esbuildServe` for an electron project (which must have had
     * [[writeRemoteDebug]] applied), ready once Electron's CDP endpoint reports
     * a page target.
     */
-  def startWatch(directory: Path): Process =
-    E2ESupport.spawnWatch(
+  def startWatch(directory: Path): Watch = {
+    val port = new AtomicReference[Option[Int]](None)
+    val process = E2ESupport.spawnWatch(
       directory,
       Map.empty,
-      () => cdpPageReady(directory),
+      () => pageReady(port.get),
       300000,
-      s"Electron CDP endpoint reported in [${userDataDir(directory)}]"
+      "Electron CDP endpoint",
+      {
+        case devToolsListening(bound) => port.set(Some(bound.toInt))
+        case _                        => ()
+      }
     )
+    new Watch(process, port)
+  }
 
   private def httpGet(url: String, timeoutMillis: Int): Option[String] = {
     val connection =
@@ -172,17 +173,19 @@ object ElectronSupport {
     } finally connection.disconnect()
   }
 
-  /** True once Electron's remote-debugging endpoint reports a `page` target. */
-  def cdpPageReady(projectDir: Path): Boolean =
-    debugPort(projectDir)
+  private def pageReady(debugPort: Option[Int]): Boolean =
+    debugPort
       .flatMap(port => httpGet(s"http://localhost:$port/json", 2000))
       .exists(_.replaceAll("\\s", "").contains("\"type\":\"page\""))
+
+  /** True once Electron's remote-debugging endpoint reports a `page` target. */
+  def cdpPageReady(watch: Watch): Boolean = pageReady(watch.debugPort)
 
   /** The CDP endpoint's per-process browser id; changes when Electron respawns,
     * so a differing value confirms a main-process restart.
     */
-  def cdpBrowserId(projectDir: Path): Option[String] =
-    debugPort(projectDir)
+  def cdpBrowserId(watch: Watch): Option[String] =
+    watch.debugPort
       .flatMap(port => httpGet(s"http://localhost:$port/json/version", 2000))
       .flatMap { body =>
         """"webSocketDebuggerUrl"\s*:\s*"[^"]*/devtools/browser/([^"]+)"""".r
@@ -207,11 +210,9 @@ object ElectronSupport {
     * global `webdriver.chrome.driver` property so it can't leak into the web
     * spec's Selenium-Manager driver.
     */
-  def newDriver(chromedriver: Path, projectDir: Path): WebDriver = {
-    val port = debugPort(projectDir).getOrElse(
-      sys.error(
-        s"No Electron remote-debugging port in [${userDataDir(projectDir)}]"
-      )
+  def newDriver(chromedriver: Path, watch: Watch): WebDriver = {
+    val port = watch.debugPort.getOrElse(
+      sys.error("No Electron remote-debugging port reported yet")
     )
     val service = new ChromeDriverService.Builder()
       .usingDriverExecutable(chromedriver.toFile)

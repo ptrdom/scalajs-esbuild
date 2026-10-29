@@ -1,5 +1,10 @@
 package scalajs.esbuild.e2e
 
+import java.io.BufferedReader
+import java.io.IOException
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.io.PrintStream
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
@@ -119,14 +124,16 @@ object E2ESupport {
 
   /** Spawns `sbt ~esbuildServe` (with `extraEnv` added to its environment) and
     * blocks until `ready` holds or the process dies / the timeout elapses. Each
-    * module supplies its own readiness check.
+    * module supplies its own readiness check. Every line the watch prints is
+    * echoed to this process's console and passed to `onOutputLine`.
     */
   def spawnWatch(
       directory: Path,
       extraEnv: Map[String, String],
       ready: () => Boolean,
       timeoutMillis: Long,
-      describe: String
+      describe: String,
+      onOutputLine: String => Unit = _ => ()
   ): Process = {
     val launcher = if (isWindows) List("cmd", "/c", "sbt") else List("sbt")
     val command = new java.util.ArrayList[String]()
@@ -138,9 +145,9 @@ object E2ESupport {
     }
     // stdin stays an open, idle pipe: an EOF makes `~` quit immediately.
     builder.redirectInput(ProcessBuilder.Redirect.PIPE)
-    builder.redirectOutput(ProcessBuilder.Redirect.INHERIT)
-    builder.redirectError(ProcessBuilder.Redirect.INHERIT)
     val process = builder.start()
+    echoLines(process.getInputStream, System.out, onOutputLine)
+    echoLines(process.getErrorStream, System.err, onOutputLine)
 
     val deadline = System.currentTimeMillis() + timeoutMillis
     var up = false
@@ -157,6 +164,33 @@ object E2ESupport {
       sys.error(s"$describe did not become ready within timeout")
     }
     process
+  }
+
+  /** Drains `stream` on a daemon thread until EOF, echoing each line to
+    * `console` and passing it to `onLine`.
+    */
+  private def echoLines(
+      stream: InputStream,
+      console: PrintStream,
+      onLine: String => Unit
+  ): Unit = {
+    val thread = new Thread(() => {
+      val reader = new BufferedReader(
+        new InputStreamReader(stream, StandardCharsets.UTF_8)
+      )
+      try {
+        var line = reader.readLine()
+        while (line != null) {
+          console.println(line)
+          onLine(line)
+          line = reader.readLine()
+        }
+      } catch {
+        case _: IOException => ()
+      } finally reader.close()
+    })
+    thread.setDaemon(true)
+    thread.start()
   }
 
   /** True once a TCP connection to `port` on localhost succeeds. */
