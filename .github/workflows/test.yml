@@ -23,12 +23,12 @@ jobs:
         test-suffix: [release, snapshot]
         include:
           - jdk: 25
-            os: macos-14
+            os: macos-26
             browser: chrome
             experimental: true
             test-suffix: release
           - jdk: 25
-            os: macos-14
+            os: macos-26
             browser: chrome
             experimental: true
             test-suffix: snapshot
