@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         jdk: [8, 25]
-        os: [ubuntu-22.04, windows-2025]
+        os: [ubuntu-26.04, windows-2025]
         browser: ["${{ vars.E2E_TEST_BROWSER }}"]
         experimental: [false]
         test-suffix: [release, snapshot]
@@ -76,6 +76,13 @@ jobs:
           key: selenium-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('**/sbt-test/**/html.sbt', 'e2e/**/E2ESupport.scala') }}
           restore-keys: |
             selenium-${{ runner.os }}-${{ matrix.browser }}-
+      # Ubuntu 24.04+ restricts unprivileged user namespaces via AppArmor, so
+      # Electron falls back to the SUID chrome-sandbox helper, which npm leaves
+      # without root ownership/4755, and aborts on launch. Lift the restriction
+      # so the namespace sandbox works.
+      - name: Allow unprivileged user namespaces (Linux)
+        if: startsWith(matrix.os, 'ubuntu-')
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Run tests (Linux/macOS)
         if: ${{ !startsWith(matrix.os, 'windows-') }}
         uses: coactions/setup-xvfb@v1
