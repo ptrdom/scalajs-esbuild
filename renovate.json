@@ -106,6 +106,11 @@
   ],
   "packageRules": [
     {
+      "description": "Yarn 4 refuses versions younger than its default npmMinimalAgeGate of 1 day, so a bump PR opened sooner fails the scripted tests that install with Yarn on exact pins.",
+      "matchDatasources": ["npm"],
+      "minimumReleaseAge": "1 day"
+    },
+    {
       "matchPackageNames": ["electron", "electron-chromedriver"],
       "groupName": "electron",
       "respectLatest": false
