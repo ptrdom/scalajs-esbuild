@@ -36,4 +36,5 @@ trait Window extends js.Object {
 
 trait ScreenshotConfig extends js.Object {
   val path: String
+  val timeout: js.UndefOr[Double] = js.undefined
 }

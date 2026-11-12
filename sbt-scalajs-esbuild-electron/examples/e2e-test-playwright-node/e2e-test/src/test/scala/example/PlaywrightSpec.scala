@@ -41,10 +41,12 @@ class PlaywrightSpec extends AsyncFreeSpec with Matchers {
             window <- electronApp.firstWindow()
             title <- window.title()
             _ = println(title)
-            // taking a screenshot became flaky since Electron 35 with xvfb, simplest workaround is to retry until timeout
+            // taking a screenshot became flaky since Electron 35 with xvfb, simplest workaround is to retry until timeout;
+            // a single attempt can also stall for longer than the whole retry budget, so each attempt gets its own timeout
             // FIXME figure out how to not need this workaround
             _ <- eventually(window.screenshot(new ScreenshotConfig {
               override val path = "intro.png"
+              override val timeout = 3000d
             }))
             _ <- window.isVisible("text='PRELOAD WORKS!'").map(_ shouldBe true)
             _ <- window.isVisible("text='RENDERER WORKS!'").map(_ shouldBe true)
@@ -64,7 +66,7 @@ class PlaywrightSpec extends AsyncFreeSpec with Matchers {
 
   def eventually[T](f: => Future[T]) = {
     import scala.concurrent.duration._
-    val timeout = 15.seconds
+    val timeout = 30.seconds
     val interval = 150.millis
     val start = System.nanoTime()
 
