@@ -191,9 +191,9 @@ lazy val `scala-steward-hooks` = project
       "org.scalatest" %% "scalatest-shouldmatchers" % "3.2.20",
       "org.scalatestplus" %% "selenium-4-12" % "3.2.17.0",
       "org.seleniumhq.selenium" % "selenium-java" % "4.52.0",
-      "org.apache.pekko" %% "pekko-actor-typed" % "1.7.1",
-      "org.apache.pekko" %% "pekko-stream" % "1.7.1",
-      "org.apache.pekko" %% "pekko-http" % "1.4.2",
+      "org.apache.pekko" %% "pekko-actor-typed" % "2.0.0",
+      "org.apache.pekko" %% "pekko-stream" % "2.0.0",
+      "org.apache.pekko" %% "pekko-http" % "2.0.0",
       "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.1"
     )
   )

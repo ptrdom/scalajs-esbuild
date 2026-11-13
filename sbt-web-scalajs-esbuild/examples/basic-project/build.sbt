@@ -23,9 +23,9 @@ lazy val server = project
     Runtime / managedClasspath += (Assets / packageBin).value,
     libraryDependencies ++= {
       Seq(
-        "org.apache.pekko" %% "pekko-actor-typed" % "1.7.1",
-        "org.apache.pekko" %% "pekko-stream" % "1.7.1",
-        "org.apache.pekko" %% "pekko-http" % "1.4.2"
+        "org.apache.pekko" %% "pekko-actor-typed" % "2.0.0",
+        "org.apache.pekko" %% "pekko-stream" % "2.0.0",
+        "org.apache.pekko" %% "pekko-http" % "2.0.0"
       )
     }
   )
