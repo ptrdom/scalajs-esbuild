@@ -34,8 +34,15 @@ jobs:
             test-suffix: snapshot
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}
+    # The slowest rows (Windows, JDK 25) take about 35 minutes. Without a limit,
+    # an sbt hang (such as Scala.js 1.23+ running on JDK 8) holds a runner for
+    # GitHub's 6-hour default.
+    timeout-minutes: 60
     env:
-      SBT_CHECK_TASKS: scalafmtSbtCheck scalafmtCheckAll e2e-testkit/scalafmtCheckAll e2e-web/scalafmtCheckAll e2e-electron/scalafmtCheckAll test
+      # JDK 8 skips `test`: it only links `scala-steward-hooks` with the build's
+      # Scala.js, and Scala.js 1.23+ needs JDK 17. The JDK 8 scripted tests pin
+      # Scala.js 1.22.0 instead (sbt-test-jdk8).
+      SBT_CHECK_TASKS: scalafmtSbtCheck scalafmtCheckAll e2e-testkit/scalafmtCheckAll e2e-web/scalafmtCheckAll e2e-electron/scalafmtCheckAll${{ matrix.jdk != 8 && ' test' || '' }}
       SBT_SCRIPTED_TARGETS: ${{ matrix.jdk == 8 && format('sbt-scalajs-esbuild/*-{0} sbt-scalajs-esbuild-electron/basic-project-{0} sbt-scalajs-esbuild-electron/e2e-test-playwright-node-{0} sbt-scalajs-esbuild-electron/electron-builder-{0} sbt-scalajs-esbuild-electron/electron-forge-{0}', matrix.test-suffix) || format('*/*-{0}', matrix.test-suffix) }}
     steps:
       - uses: actions/checkout@v7

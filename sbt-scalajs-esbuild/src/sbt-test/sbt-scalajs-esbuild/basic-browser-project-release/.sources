@@ -1,2 +1,3 @@
 examples/basic-browser-project
 src/sbt-test/sbt-scalajs-esbuild/basic-browser-project-snapshot
+../sbt-test-jdk8

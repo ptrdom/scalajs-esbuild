@@ -1,2 +1,3 @@
 src/sbt-test-utilities
 examples/e2e-test-playwright-node
+../sbt-test-jdk8
