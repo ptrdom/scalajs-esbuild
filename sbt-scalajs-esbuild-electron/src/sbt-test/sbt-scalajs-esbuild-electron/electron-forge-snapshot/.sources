@@ -1,2 +1,3 @@
 src/sbt-test-utilities
 examples/electron-forge
+../sbt-test-jdk8

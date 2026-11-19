@@ -23,6 +23,18 @@ but any advanced configuration should be provided by modifying said scripts thro
 All sbt tasks that depend on Scala.js stages can be scoped both implicitly and explicitly, for example `esbuildBundle` will use `scalaJSStage` or the stage
 can be provided within the command - `fastLinkJS/esbuildBundle`/`fullLinkJS/esbuildBundle`.
 
+### Scala.js and JDK versions
+
+The plugins depend on the latest Scala.js, which needs JDK 17 or later. On older JDKs, force Scala.js 1.22.0, the last release that runs there, in `project/plugins.sbt`:
+
+```scala
+dependencyOverrides += Defaults.sbtPluginExtra(
+  "org.scala-js" % "sbt-scalajs" % "1.22.0",
+  (pluginCrossBuild / sbtBinaryVersion).value,
+  scalaBinaryVersion.value
+)
+```
+
 ### Base plugin
 
 Base plugin is designed for Node or browser libraries, CLIs or standalone scripts - for web apps please use [web plugin](#web-plugin).

@@ -1,2 +1,3 @@
 src/sbt-test-utilities
 examples/electron-builder
+../sbt-test-jdk8

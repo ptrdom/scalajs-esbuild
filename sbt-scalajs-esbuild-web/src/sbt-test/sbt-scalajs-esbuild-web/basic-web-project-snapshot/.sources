@@ -1,2 +1,3 @@
 src/sbt-test-utilities
 examples/basic-web-project
+../sbt-test-jdk8
